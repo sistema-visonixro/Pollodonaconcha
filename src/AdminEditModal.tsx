@@ -42,7 +42,7 @@ const AdminEditModal: React.FC<AdminEditModalProps> = ({
         justifyContent: "center",
         zIndex: 9999,
       }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       <div
         style={{

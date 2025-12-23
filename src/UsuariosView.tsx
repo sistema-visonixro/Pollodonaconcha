@@ -713,7 +713,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
               justifyContent: "center",
               zIndex: 9999,
             }}
-            onClick={() => setShowModal(false)}
+            onClick={(e) => e.stopPropagation()}
           >
             <div
               style={{
