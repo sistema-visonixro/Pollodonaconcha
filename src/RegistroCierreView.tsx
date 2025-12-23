@@ -506,6 +506,7 @@ export default function RegistroCierreView({
             fecha: fecha,
             hora: hora,
             cajero: registro.cajero || "",
+            admin: String(usuarioActual?.email || ""),
             efectivo_reg: String(registro.efectivo_registrado || 0),
             tarjeta_reg: String(registro.monto_tarjeta_registrado || 0),
             transf_reg: String(registro.transferencias_registradas || 0),
