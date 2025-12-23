@@ -502,11 +502,27 @@ export default function RegistroCierreView({
           const fecha = now.toLocaleDateString();
           const hora = now.toLocaleTimeString();
 
+          // Determinar correo del admin: preferir correo del usuario tipo Admin en la tabla,
+          // si no existe usar el email del usuarioActual como fallback.
+          let adminEmailToSend = usuarioActual?.email || "";
+          try {
+            const { data: adminUsers, error: adminErr } = await supabase
+              .from("usuarios")
+              .select("email")
+              .eq("rol", "Admin")
+              .limit(1);
+            if (!adminErr && adminUsers && adminUsers.length > 0) {
+              adminEmailToSend = adminUsers[0].email || adminEmailToSend;
+            }
+          } catch (e) {
+            // ignore and fallback
+          }
+
           const params = new URLSearchParams({
             fecha: fecha,
             hora: hora,
             cajero: registro.cajero || "",
-            admin: String(usuarioActual?.email || ""),
+            admin: String(adminEmailToSend || ""),
             efectivo_reg: String(registro.efectivo_registrado || 0),
             tarjeta_reg: String(registro.monto_tarjeta_registrado || 0),
             transf_reg: String(registro.transferencias_registradas || 0),
