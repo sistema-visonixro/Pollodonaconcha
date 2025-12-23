@@ -107,17 +107,17 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         box-sizing: border-box !important;
         display: block !important;
         max-width: none !important;
-        background: unset !important;
+        background: #f8fafc !important;
       }
       :root {
-        --primary: #1a1a2e;
-        --secondary: #16213e;
-        --accent: #0f3460;
-        --text-primary: #ffffff;
-        --text-secondary: #b0b3c1;
-        --border: #2d3748;
-        --shadow: 0 10px 30px rgba(0,0,0,0.3);
-        --shadow-hover: 0 20px 40px rgba(0,0,0,0.4);
+        --primary: #ffffff;
+        --secondary: #f8fafc;
+        --accent: #3b82f6;
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 4px 20px rgba(0,0,0,0.06);
+        --shadow-hover: 0 12px 32px rgba(0,0,0,0.12);
       }
 
       * {
@@ -126,7 +126,7 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
 
       .admin-panel-enterprise {
         min-height: 100vh;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
         padding: 0;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         overflow-x: hidden;
@@ -144,13 +144,14 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
       }
       
       .header {
-        background: rgba(26, 26, 46, 0.95);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         border-bottom: 1px solid var(--border);
         padding: 2rem 2.5rem;
         position: sticky;
         top: 0;
         z-index: 100;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
       }
       
       .header-content {
@@ -177,36 +178,39 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
   align-items: center;
   gap: 8px;
   color: var(--text-secondary);
-  background: rgba(255,255,255,0.04);
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem 1.5rem 1.5rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #dbeafe 100%);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 20px rgba(59,130,246,0.12);
+  border: 1px solid #e0e7ff;
       }
       
       .user-avatar {
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #1e88e5, #42a5f5);
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
+        font-weight: 800;
         color: white;
-        font-size: 1.1rem;
+        font-size: 1.4rem;
+        box-shadow: 0 4px 16px rgba(59,130,246,0.3);
       }
       
       .user-details h1 {
         margin: 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: var(--text-primary);
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
       }
       
       .user-role {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
+        font-size: 0.9rem;
+        color: #3b82f6;
         margin: 0;
+        font-weight: 600;
       }
       
       .main-content {
@@ -222,8 +226,8 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
       
       .welcome-title {
         font-size: clamp(2rem, 4vw, 3.5rem);
-        font-weight: 700;
-        background: linear-gradient(135deg, var(--text-primary) 0%, #e0e7ff 100%);
+        font-weight: 800;
+        background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin: 0 0 1rem 0;
@@ -247,15 +251,16 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
       }
       
       .card {
-        background: rgba(255, 255, 255, 0.05);
+        background: white;
         backdrop-filter: blur(16px);
-        border: 1px solid var(--border);
-        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
         padding: 2rem;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       }
       
       .card::before {
@@ -264,15 +269,16 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--card-color), transparent);
+        height: 5px;
+        background: var(--card-color);
+        border-radius: 20px 20px 0 0;
       }
       
       .card:hover {
-        transform: translateY(-8px);
-        background: rgba(255, 255, 255, 0.08);
-        border-color: var(--text-secondary);
-        box-shadow: var(--shadow-hover);
+        transform: translateY(-8px) scale(1.02);
+        background: white;
+        border-color: var(--card-color);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 0 0 3px rgba(59,130,246,0.1);
       }
       
       .card-header {
@@ -283,16 +289,22 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
       }
       
       .card-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 12px;
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.75rem;
-        background: linear-gradient(135deg, var(--card-color), var(--card-color)80);
+        font-size: 2rem;
+        background: linear-gradient(135deg, var(--card-color), var(--card-color)cc);
         color: white;
         flex-shrink: 0;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease;
+      }
+      
+      .card:hover .card-icon {
+        transform: scale(1.1) rotate(5deg);
       }
 
   /* Brand image: tamaño más pequeño por defecto, y más pequeño aún en móvil (avatar redondo) */
@@ -300,35 +312,37 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
       
       .card-content h3 {
         margin: 0 0 0.5rem 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #0f172a;
         line-height: 1.3;
       }
       
       .card-subtitle {
         margin: 0;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        font-weight: 400;
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 500;
       }
       
       .card-footer {
         margin-top: 1.5rem;
         padding-top: 1.5rem;
-        border-top: 1px solid var(--border);
+        border-top: 1px solid #f1f5f9;
         display: flex;
         justify-content: flex-end;
       }
       
       .card-arrow {
-        color: var(--text-secondary);
-        transition: color 0.3s ease;
+        color: #cbd5e1;
+        transition: all 0.3s ease;
+        font-size: 1.25rem;
+        font-weight: 700;
       }
       
       .card:hover .card-arrow {
-        color: var(--text-primary);
-        transform: translateX(4px);
+        color: var(--card-color);
+        transform: translateX(6px);
       }
       
       @media (max-width: 1024px) {
@@ -373,8 +387,8 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         .user-info .btn-primary { display: none !important; }
         .floating-controls { display: flex !important; position: fixed; right: 16px; bottom: 18px; flex-direction: column; gap: 10px; z-index: 2000; }
         .floating-btn { width: 52px; height: 52px; border-radius: 999px; border: none; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 8px 20px rgba(7,23,48,0.12); cursor: pointer; }
-        .floating-btn.logout { background: linear-gradient(135deg, #c62828, #ffb74d); color: #1a1a2e; }
-        .floating-btn.clave { background: #1976d2; color: #fff; }
+        .floating-btn.logout { background: linear-gradient(135deg, #ef4444, #f59e0b); color: white; }
+        .floating-btn.clave { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; }
   .brand-image { width: 44px !important; height: 44px !important; border-radius: 999px !important; object-fit: cover; }
       }
 
@@ -414,7 +428,7 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                   textAlign: "center",
                   fontWeight: 800,
                   fontSize: "1.7rem",
-                  color: "#fff",
+                  color: "#0f172a",
                   marginTop: "0.5rem",
                   letterSpacing: "2px",
                 }}
@@ -433,7 +447,7 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                   fontSize: "1.2rem",
                   fontWeight: 700,
                   margin: 0,
-                  color: "#fff",
+                  color: "#0f172a",
                 }}
               >
                 {user.nombre}
@@ -442,7 +456,7 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                 className="user-role"
                 style={{
                   fontSize: "0.95rem",
-                  color: "#ffe066",
+                  color: "#3b82f6",
                   margin: 0,
                   fontWeight: 600,
                 }}
@@ -456,12 +470,15 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                 marginTop: "1rem",
                 width: "100%",
                 fontSize: "1rem",
-                background: "linear-gradient(135deg, #c62828 0%, #ffe066 100%)",
-                color: "#1a1a2e",
+                background: "linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)",
+                color: "white",
                 fontWeight: 700,
                 border: "none",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(198,40,40,0.15)",
+                borderRadius: "12px",
+                boxShadow: "0 4px 16px rgba(239,68,68,0.25)",
+                cursor: "pointer",
+                padding: "0.85rem 0",
+                transition: "all 0.3s ease",
               }}
               onClick={() => setShowLogoutModal(true)}
             >
@@ -474,13 +491,15 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                 marginTop: "0.75rem",
                 width: "100%",
                 fontSize: "1rem",
-                background: "#1976d2",
-                color: "#fff",
+                background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                color: "white",
                 fontWeight: 700,
                 border: "none",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(25,118,210,0.15)",
+                borderRadius: "12px",
+                boxShadow: "0 4px 16px rgba(59,130,246,0.25)",
                 cursor: "pointer",
+                padding: "0.85rem 0",
+                transition: "all 0.3s ease",
               }}
               onClick={async () => {
                 setShowClaveModal(true);
@@ -584,7 +603,8 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(15,23,42,0.5)",
+            backdropFilter: "blur(8px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -593,47 +613,51 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         >
           <div
             style={{
-              background: "#fff",
-              borderRadius: "16px",
-              padding: "2rem 2.5rem",
-              minWidth: "320px",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+              background: "white",
+              borderRadius: "24px",
+              padding: "2.5rem 3rem",
+              minWidth: "360px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
               textAlign: "center",
+              border: "1px solid #e2e8f0",
             }}
           >
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔒</div>
             <h2
               style={{
-                color: "#c62828",
+                color: "#0f172a",
                 fontWeight: 800,
                 marginBottom: "1rem",
+                fontSize: "1.5rem",
               }}
             >
               Cerrar sesión
             </h2>
             <p
               style={{
-                color: "#222",
-                fontSize: "1.1rem",
+                color: "#64748b",
+                fontSize: "1.05rem",
                 marginBottom: "2rem",
+                lineHeight: 1.6,
               }}
             >
-              ¿Seguro que deseas cerrar sesión?
+              ¿Estás seguro que deseas cerrar tu sesión actual?
             </p>
             <div
               style={{ display: "flex", gap: "1rem", justifyContent: "center" }}
             >
               <button
                 style={{
-                  background:
-                    "linear-gradient(135deg, #c62828 0%, #ffe066 100%)",
-                  color: "#1a1a2e",
+                  background: "linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)",
+                  color: "white",
                   fontWeight: 700,
                   border: "none",
-                  borderRadius: "8px",
-                  padding: "0.7rem 1.5rem",
+                  borderRadius: "12px",
+                  padding: "0.85rem 2rem",
                   fontSize: "1rem",
                   cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(198,40,40,0.15)",
+                  boxShadow: "0 4px 16px rgba(239,68,68,0.25)",
+                  transition: "all 0.3s ease",
                 }}
                 onClick={() => {
                   localStorage.removeItem("usuario");
@@ -644,14 +668,15 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
               </button>
               <button
                 style={{
-                  background: "#eee",
-                  color: "#222",
+                  background: "#f1f5f9",
+                  color: "#0f172a",
                   fontWeight: 600,
                   border: "none",
-                  borderRadius: "8px",
-                  padding: "0.7rem 1.5rem",
+                  borderRadius: "12px",
+                  padding: "0.85rem 2rem",
                   fontSize: "1rem",
                   cursor: "pointer",
+                  transition: "all 0.3s ease",
                 }}
                 onClick={() => setShowLogoutModal(false)}
               >
@@ -670,7 +695,8 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(15,23,42,0.5)",
+            backdropFilter: "blur(8px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -680,35 +706,52 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         >
           <div
             style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "1.5rem",
-              minWidth: 320,
+              background: "white",
+              borderRadius: "24px",
+              padding: "2.5rem 3rem",
+              minWidth: 360,
               textAlign: "center",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+              border: "1px solid #e2e8f0",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginTop: 0, color: "#1976d2" }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔐</div>
+            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "1.5rem", fontWeight: 800, marginBottom: "1.5rem" }}>
               Clave de Aclaración
             </h3>
             {cargandoClave ? (
-              <div>Cargando...</div>
+              <div style={{ color: "#64748b", fontSize: "1.05rem" }}>Consultando seguridad...</div>
             ) : claveCaja ? (
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#d32f2f" }}>
+              <div style={{ 
+                fontSize: "3rem", 
+                fontWeight: 900, 
+                color: "#3b82f6",
+                letterSpacing: "8px",
+                marginBottom: "1.5rem",
+                padding: "1rem",
+                background: "linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)",
+                borderRadius: "16px",
+                border: "2px dashed #3b82f6"
+              }}>
                 {claveCaja}
               </div>
             ) : (
-              <div style={{ color: "#666" }}>No se encontró la clave</div>
+              <div style={{ color: "#94a3b8", fontSize: "1.05rem" }}>No se encontró la clave</div>
             )}
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 16 }}>
               <button
                 style={{
-                  padding: "8px 16px",
-                  borderRadius: 8,
+                  padding: "0.85rem 2.5rem",
+                  borderRadius: 12,
                   border: "none",
-                  background: "#1976d2",
-                  color: "#fff",
+                  background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                  color: "white",
                   fontWeight: 700,
+                  fontSize: "1rem",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 16px rgba(59,130,246,0.25)",
+                  transition: "all 0.3s ease",
                 }}
                 onClick={() => setShowClaveModal(false)}
               >
