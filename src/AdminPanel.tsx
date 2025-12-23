@@ -66,20 +66,6 @@ const cards: {
     color: "#f57c00",
     subtitle: "Conciliación diaria",
   },
-  {
-    label: "Configurar Etiquetas Comanda",
-    icon: "🏷️",
-    view: "etiquetas",
-    color: "#43a047",
-    subtitle: "Editar textos de impresión comanda",
-  },
-  {
-    label: "Configurar Recibo Cliente",
-    icon: "🧾",
-    view: "recibo",
-    color: "#1976d2",
-    subtitle: "Editar textos de recibo cliente",
-  },
 ];
 
 interface AdminPanelProps {
@@ -526,25 +512,35 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
 
       {/* Botones flotantes para móvil */}
       <div className="floating-controls" style={{ display: "none" }}>
-        <button className="floating-btn logout" onClick={() => setShowLogoutModal(true)}>🔒</button>
-        <button className="floating-btn clave" onClick={async () => {
-          setShowClaveModal(true);
-          setCargandoClave(true);
-          try {
-            const { data, error } = await supabase
-              .from("claves_autorizacion")
-              .select("clave")
-              .eq("id", 1)
-              .single();
-            if (!error && data) setClaveCaja(String(data.clave));
-            else setClaveCaja(null);
-          } catch (err) {
-            console.error("Error obteniendo clave:", err);
-            setClaveCaja(null);
-          } finally {
-            setCargandoClave(false);
-          }
-        }}>🔐</button>
+        <button
+          className="floating-btn logout"
+          onClick={() => setShowLogoutModal(true)}
+        >
+          🔒
+        </button>
+        <button
+          className="floating-btn clave"
+          onClick={async () => {
+            setShowClaveModal(true);
+            setCargandoClave(true);
+            try {
+              const { data, error } = await supabase
+                .from("claves_autorizacion")
+                .select("clave")
+                .eq("id", 1)
+                .single();
+              if (!error && data) setClaveCaja(String(data.clave));
+              else setClaveCaja(null);
+            } catch (err) {
+              console.error("Error obteniendo clave:", err);
+              setClaveCaja(null);
+            } finally {
+              setCargandoClave(false);
+            }
+          }}
+        >
+          🔐
+        </button>
       </div>
 
       <main className="main-content">
@@ -692,17 +688,28 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginTop: 0, color: "#1976d2" }}>Clave de Aclaración</h3>
+            <h3 style={{ marginTop: 0, color: "#1976d2" }}>
+              Clave de Aclaración
+            </h3>
             {cargandoClave ? (
               <div>Cargando...</div>
             ) : claveCaja ? (
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#d32f2f" }}>{claveCaja}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#d32f2f" }}>
+                {claveCaja}
+              </div>
             ) : (
               <div style={{ color: "#666" }}>No se encontró la clave</div>
             )}
             <div style={{ marginTop: 12 }}>
               <button
-                style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#1976d2", color: "#fff", fontWeight: 700 }}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#1976d2",
+                  color: "#fff",
+                  fontWeight: 700,
+                }}
                 onClick={() => setShowClaveModal(false)}
               >
                 Cerrar
