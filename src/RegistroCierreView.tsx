@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
+import { NOMBRE_NEGOCIO_UPPER } from "./empresa";
 import { getLocalDayRange, formatToHondurasLocal } from "./utils/fechas";
 
 interface UsuarioActual {
@@ -185,7 +186,7 @@ export default function RegistroCierreView({
           <body>
             <div class="header">
              
-              <div style="font-size: 18px;">POLLOS CESAR</div>
+              <div style="font-size: 18px;">${NOMBRE_NEGOCIO_UPPER}</div>
           
               <div class="title">REPORTE DE CIERRE DE CAJA</div>
             </div>

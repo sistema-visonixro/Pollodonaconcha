@@ -13,6 +13,7 @@ import {
   Line,
   CartesianGrid,
 } from "recharts";
+import { NOMBRE_NEGOCIO_UPPER } from "./empresa";
 
 // use centralized supabase client from src/supabaseClient.ts
 
@@ -252,7 +253,7 @@ export default function ResultadosView({
   // Header con logo (intenta cargar /logo.png, si no existe se oculta)
       html += `</head><body>`;
   // intentar usar /favicon-32.png como logo; si falla, caer a /logo.svg
-  html += `<div class="report-header"><img class="report-logo" src="/favicon-32.png" alt="logo" onerror="this.onerror=null;this.src='/logo.svg'"/><div><div class="report-title">POLLOS CESAR</div><div style=\"margin-top:6px;color:#444\">${titulo}</div></div></div>`;
+  html += `<div class="report-header"><img class="report-logo" src="/favicon-32.png" alt="logo" onerror="this.onerror=null;this.src='/logo.svg'"/><div><div class="report-title">${NOMBRE_NEGOCIO_UPPER}</div><div style=\"margin-top:6px;color:#444\">${titulo}</div></div></div>`;
       html += `<div class="section"><h2>Resumen</h2><table><tbody>`;
       html += `<tr><th>Total facturas</th><td>${totalFacturas}</td></tr>`;
   html += `<tr><th>Total ventas</th><td>L ${totalVentas.toFixed(2)}</td></tr>`;

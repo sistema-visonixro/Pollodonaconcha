@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { NOMBRE_NEGOCIO, NOMBRE_NEGOCIO_UPPER } from "./empresa";
 import PagoModal from "./PagoModal";
 import RegistroCierreView from "./RegistroCierreView";
 import { supabase } from "./supabaseClient";
@@ -952,11 +953,11 @@ export default function PuntoDeVentaView({
               }mm; margin:0; padding:${reciboConfig?.recibo_padding || 8}px; background:#fff;'>
                 <!-- Logo -->
                 <div style='text-align:center; margin-bottom:12px;'>
-                  <img src='/favicon.ico' alt='POLLOS CESAR' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
+                  <img src='/favicon.ico' alt='${NOMBRE_NEGOCIO}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
                 </div>
                 
                 <!-- Información del Negocio -->
-                <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>POLLOS CESAR</div>
+                <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${NOMBRE_NEGOCIO_UPPER}</div>
                 <div style='text-align:center; font-size:14px; margin-bottom:3px;'>ISLAS DE LA BAHÍA, SANDY BAY</div>
                 <div style='text-align:center; font-size:14px; margin-bottom:3px;'>BO. LA UVA</div>
                 <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: 18071993019392</div>
@@ -1865,11 +1866,11 @@ export default function PuntoDeVentaView({
                         <div style='font-family:monospace; width:${reciboConfig?.recibo_ancho || 80}mm; margin:0; padding:${reciboConfig?.recibo_padding || 8}px; background:#fff;'>
                           <!-- Logo -->
                           <div style='text-align:center; margin-bottom:12px;'>
-                            <img src='/favicon.ico' alt='POLLOS CESAR' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
+                            <img src='/favicon.ico' alt='${NOMBRE_NEGOCIO}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
                           </div>
                           
                           <!-- Información del Negocio -->
-                          <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>POLLOS CESAR</div>
+                          <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${NOMBRE_NEGOCIO_UPPER}</div>
                           <div style='text-align:center; font-size:14px; margin-bottom:3px;'>ISLAS DE LA BAHÍA, SANDY BAY</div>
                           <div style='text-align:center; font-size:14px; margin-bottom:3px;'>BO. LA UVA</div>
                           <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: 18071993019392</div>
@@ -2026,7 +2027,7 @@ export default function PuntoDeVentaView({
       {showReceiptModal && lastEnvioSaved && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fff', zIndex: 100000, padding: 24, overflow: 'auto' }}>
           <div style={{ maxWidth: 480, margin: '0 auto', fontFamily: 'monospace' }}>
-            <h2 style={{ textAlign: 'center', margin: 0 }}>pollos cesar</h2>
+            <h2 style={{ textAlign: 'center', margin: 0 }}>{NOMBRE_NEGOCIO}</h2>
             <p style={{ textAlign: 'center', marginTop: 4 }}>{lastEnvioSaved.fecha}</p>
             <hr />
             <div>

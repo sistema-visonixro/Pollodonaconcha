@@ -89,6 +89,7 @@ interface AdminPanelProps {
 
 import { useState } from "react";
 import { supabase } from "./supabaseClient";
+import { NOMBRE_NEGOCIO } from "./empresa";
 
 const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -432,7 +433,7 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                   letterSpacing: "2px",
                 }}
               >
-                pollos cesar
+                {NOMBRE_NEGOCIO}
               </span>
             </div>
           </div>
