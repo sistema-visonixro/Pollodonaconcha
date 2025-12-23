@@ -15,10 +15,12 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(true);
     setError('');
     try {
-  const res = await fetch('https://zyziaizfmfvtibhpqwda.supabase.co/rest/v1/usuarios?select=*', {
+  const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/usuarios?select=*`;
+        const API_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
+  const res = await fetch(API_URL, {
         headers: {
-          apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5emlhaXpmbWZ2dGliaHBxd2RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNjU1MzcsImV4cCI6MjA3NTk0MTUzN30.cLiAwO8kw23reAYLXOQ4AO1xgrTDI_vhXkJCJHGWXLY',
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5emlhaXpmbWZ2dGliaHBxd2RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNjU1MzcsImV4cCI6MjA3NTk0MTUzN30.cLiAwO8kw23reAYLXOQ4AO1xgrTDI_vhXkJCJHGWXLY',
+          apikey: API_KEY,
+          Authorization: `Bearer ${API_KEY}`,
         },
       });
       const users = await res.json();

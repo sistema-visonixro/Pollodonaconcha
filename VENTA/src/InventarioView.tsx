@@ -18,8 +18,8 @@ interface InventarioViewProps {
   onBack: () => void;
 }
 
-const API_URL = 'https://zyziaizfmfvtibhpqwda.supabase.co/rest/v1/productos';
-const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5emlhaXpmbWZ2dGliaHBxd2RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNjU1MzcsImV4cCI6MjA3NTk0MTUzN30.cLiAwO8kw23reAYLXOQ4AO1xgrTDI_vhXkJCJHGWXLY';
+const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/productos`;
+const API_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
 
 // Initialize Supabase client
 // use centralized supabase client from src/supabaseClient.ts
