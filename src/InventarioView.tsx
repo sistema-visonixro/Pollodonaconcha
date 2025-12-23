@@ -35,7 +35,9 @@ export default function InventarioView({ onBack }: InventarioViewProps) {
   const [imagenFile, setImagenFile] = useState<File | null>(null);
   const [showModal, setShowModal] = useState(false);
   // filtro para mostrar tipo de producto: 'todos' | 'comida' | 'bebida'
-  const [filtroTipo, setFiltroTipo] = useState<"todos" | "comida" | "bebida">("todos");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "comida" | "bebida">(
+    "todos"
+  );
 
   useEffect(() => {
     const fetchProductos = async () => {
@@ -555,79 +557,166 @@ export default function InventarioView({ onBack }: InventarioViewProps) {
             <div className="stat-value">L {totalValor.toFixed(2)}</div>
             <div className="stat-label">Valor Total</div>
           </div>
+        </div>
+        {/* Cards view para móviles: mostramos todos los productos filtrados por tipo */}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "1400px",
+            margin: "0 auto",
+            padding: "0 1rem",
+          }}
+        >
+          {/* Filtros visibles en móvil (aparecen justo antes de las cards) */}
+          <div className="mobile-filters">
+            <button
+              className="btn-table"
+              style={{
+                background:
+                  filtroTipo === "todos"
+                    ? "rgba(66,165,245,0.15)"
+                    : "transparent",
+                color: "#42a5f5",
+              }}
+              onClick={() => setFiltroTipo("todos")}
+            >
+              Todos
+            </button>
+            <button
+              className="btn-table"
+              style={{
+                background:
+                  filtroTipo === "comida"
+                    ? "rgba(46,125,50,0.15)"
+                    : "transparent",
+                color: "#4caf50",
+              }}
+              onClick={() => setFiltroTipo("comida")}
+            >
+              🍽️ Comida
+            </button>
+            <button
+              className="btn-table"
+              style={{
+                background:
+                  filtroTipo === "bebida"
+                    ? "rgba(255,152,0,0.12)"
+                    : "transparent",
+                color: "#ff9800",
+              }}
+              onClick={() => setFiltroTipo("bebida")}
+            >
+              🥤 Bebida
+            </button>
           </div>
-          {/* Cards view para móviles: mostramos todos los productos filtrados por tipo */}
-          <div style={{ width: "100%", maxWidth: "1400px", margin: "0 auto", padding: "0 1rem" }}>
-            {/* Filtros visibles en móvil (aparecen justo antes de las cards) */}
-            <div className="mobile-filters">
-              <button
-                className="btn-table"
-                style={{ background: filtroTipo === "todos" ? "rgba(66,165,245,0.15)" : "transparent", color: "#42a5f5" }}
-                onClick={() => setFiltroTipo("todos")}
-              >
-                Todos
-              </button>
-              <button
-                className="btn-table"
-                style={{ background: filtroTipo === "comida" ? "rgba(46,125,50,0.15)" : "transparent", color: "#4caf50" }}
-                onClick={() => setFiltroTipo("comida")}
-              >
-                🍽️ Comida
-              </button>
-              <button
-                className="btn-table"
-                style={{ background: filtroTipo === "bebida" ? "rgba(255,152,0,0.12)" : "transparent", color: "#ff9800" }}
-                onClick={() => setFiltroTipo("bebida")}
-              >
-                🥤 Bebida
-              </button>
-            </div>
-            <div className="cards-grid">
-              {productos
-                .filter((p) => (filtroTipo === "todos" ? true : p.tipo === filtroTipo))
-                .map((p) => (
-                  <div className="product-card" key={p.id}>
-                    {p.imagen ? (
-                      <img src={p.imagen} alt={p.nombre} />
-                    ) : (
-                      <div style={{ width: 64, height: 64, background: "rgba(255,255,255,0.03)", borderRadius: 8 }} />
-                    )}
-                    <div className="card-body">
-                      <div className="card-title">{p.nombre} <span style={{ fontWeight: 600, marginLeft: 8, color: "var(--text-secondary)" }}>#{p.codigo}</span></div>
-                      <div className="card-meta">Precio: L {p.precio.toFixed(2)} · Impuesto: {p.tipo_impuesto === "venta" ? "15%" : "18%"}</div>
-                      <div className="card-meta">Subtotal: L {p.sub_total.toFixed(2)}</div>
+          <div className="cards-grid">
+            {productos
+              .filter((p) =>
+                filtroTipo === "todos" ? true : p.tipo === filtroTipo
+              )
+              .map((p) => (
+                <div className="product-card" key={p.id}>
+                  {p.imagen ? (
+                    <img src={p.imagen} alt={p.nombre} />
+                  ) : (
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        background: "rgba(255,255,255,0.03)",
+                        borderRadius: 8,
+                      }}
+                    />
+                  )}
+                  <div className="card-body">
+                    <div className="card-title">
+                      {p.nombre}{" "}
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          marginLeft: 8,
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        #{p.codigo}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <button className="btn-table btn-edit" onClick={() => handleEdit(p)}>Editar</button>
-                      <button className="btn-table btn-delete" onClick={() => handleDelete(p.id!)}>Eliminar</button>
+                    <div className="card-meta">
+                      Precio: L {p.precio.toFixed(2)} · Impuesto:{" "}
+                      {p.tipo_impuesto === "venta" ? "15%" : "18%"}
+                    </div>
+                    <div className="card-meta">
+                      Subtotal: L {p.sub_total.toFixed(2)}
                     </div>
                   </div>
-                ))}
-            </div>
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
+                    <button
+                      className="btn-table btn-edit"
+                      onClick={() => handleEdit(p)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn-table btn-delete"
+                      onClick={() => handleDelete(p.id!)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
+        </div>
 
         {/* Error */}
         {error && <div className="error">⚠️ {error}</div>}
 
         {/* Filtro tipo (Todos / Comida / Bebida) */}
-        <div style={{ display: "flex", gap: 8, margin: "1rem 0", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            margin: "1rem 0",
+            flexWrap: "wrap",
+          }}
+        >
           <button
             className="btn-table"
-            style={{ background: filtroTipo === "todos" ? "rgba(66,165,245,0.15)" : "transparent", color: "#42a5f5" }}
+            style={{
+              background:
+                filtroTipo === "todos"
+                  ? "rgba(66,165,245,0.15)"
+                  : "transparent",
+              color: "#42a5f5",
+            }}
             onClick={() => setFiltroTipo("todos")}
           >
             Todos
           </button>
           <button
             className="btn-table"
-            style={{ background: filtroTipo === "comida" ? "rgba(46,125,50,0.15)" : "transparent", color: "#4caf50" }}
+            style={{
+              background:
+                filtroTipo === "comida"
+                  ? "rgba(46,125,50,0.15)"
+                  : "transparent",
+              color: "#4caf50",
+            }}
             onClick={() => setFiltroTipo("comida")}
           >
             🍽️ Comida
           </button>
           <button
             className="btn-table"
-            style={{ background: filtroTipo === "bebida" ? "rgba(255,152,0,0.12)" : "transparent", color: "#ff9800" }}
+            style={{
+              background:
+                filtroTipo === "bebida"
+                  ? "rgba(255,152,0,0.12)"
+                  : "transparent",
+              color: "#ff9800",
+            }}
             onClick={() => setFiltroTipo("bebida")}
           >
             🥤 Bebida
@@ -683,7 +772,11 @@ export default function InventarioView({ onBack }: InventarioViewProps) {
                   </thead>
                   <tbody>
                     {productos
-                      .filter((p) => (filtroTipo === "todos" ? true : p.tipo === "comida"))
+                      .filter(
+                        (p) =>
+                          p.tipo === "comida" &&
+                          (filtroTipo === "todos" || filtroTipo === "comida")
+                      )
                       .map((p) => (
                         <tr key={p.id}>
                           <td>
@@ -760,7 +853,11 @@ export default function InventarioView({ onBack }: InventarioViewProps) {
                   </thead>
                   <tbody>
                     {productos
-                      .filter((p) => (filtroTipo === "todos" ? true : p.tipo === "bebida"))
+                      .filter(
+                        (p) =>
+                          p.tipo === "bebida" &&
+                          (filtroTipo === "todos" || filtroTipo === "bebida")
+                      )
                       .map((p) => (
                         <tr key={p.id}>
                           <td>

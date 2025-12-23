@@ -33,7 +33,9 @@ export default function GastosView({ onBack }: GastosViewProps) {
     cajero_id: "",
     caja: "",
   });
-  const [cajeros, setCajeros] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [cajeros, setCajeros] = useState<Array<{ id: string; nombre: string }>>(
+    []
+  );
   const [cajaOptions, setCajaOptions] = useState<string[]>([]);
   const [editId, setEditId] = useState<number | null>(null);
   const [editGasto, setEditGasto] = useState({
@@ -48,7 +50,10 @@ export default function GastosView({ onBack }: GastosViewProps) {
     // Cargar lista de cajeros para que el admin pueda asignar al crear un gasto
     (async () => {
       try {
-        const { data } = await supabase.from("usuarios").select("id,nombre").eq("rol", "cajero");
+        const { data } = await supabase
+          .from("usuarios")
+          .select("id,nombre")
+          .eq("rol", "cajero");
         setCajeros(data || []);
       } catch (e) {
         console.warn("No se pudo obtener la lista de cajeros:", e);
@@ -60,11 +65,19 @@ export default function GastosView({ onBack }: GastosViewProps) {
     setLoading(true);
     try {
       // Construir query base
-      let query = supabase.from("gastos").select("*").order("fecha", { ascending: false });
+      let query = supabase
+        .from("gastos")
+        .select("*")
+        .order("fecha", { ascending: false });
 
       // Si hay filtro por fecha
       if (fechaDesde && fechaHasta) {
-        query = supabase.from("gastos").select("*").gte("fecha", fechaDesde).lte("fecha", fechaHasta).order("fecha", { ascending: false });
+        query = supabase
+          .from("gastos")
+          .select("*")
+          .gte("fecha", fechaDesde)
+          .lte("fecha", fechaHasta)
+          .order("fecha", { ascending: false });
       }
 
       // Si el usuario es cajero, limitar los gastos a los de su cajero_id y caja asignada
@@ -133,7 +146,13 @@ export default function GastosView({ onBack }: GastosViewProps) {
       }
 
       await supabase.from("gastos").insert([insertObj]);
-  setNuevoGasto({ fecha: "", monto: "", motivo: "", cajero_id: "", caja: "" });
+      setNuevoGasto({
+        fecha: "",
+        monto: "",
+        motivo: "",
+        cajero_id: "",
+        caja: "",
+      });
       fetchGastos();
     } catch (error) {
       console.error("Error adding gasto:", error);
@@ -541,7 +560,11 @@ export default function GastosView({ onBack }: GastosViewProps) {
                   value={nuevoGasto.cajero_id}
                   onChange={async (e) => {
                     const selId = e.target.value;
-                    setNuevoGasto({ ...nuevoGasto, cajero_id: selId, caja: "" });
+                    setNuevoGasto({
+                      ...nuevoGasto,
+                      cajero_id: selId,
+                      caja: "",
+                    });
                     // Obtener caja asignada para ese cajero
                     try {
                       const { data: caiData } = await supabase
@@ -555,8 +578,12 @@ export default function GastosView({ onBack }: GastosViewProps) {
                         setCajaOptions([cajaAsig]);
                       } else {
                         // obtener opciones generales
-                        const { data: all } = await supabase.from("cai_facturas").select("caja_asignada");
-                        const opts = (all || []).map((r: any) => r.caja_asignada).filter(Boolean);
+                        const { data: all } = await supabase
+                          .from("cai_facturas")
+                          .select("caja_asignada");
+                        const opts = (all || [])
+                          .map((r: any) => r.caja_asignada)
+                          .filter(Boolean);
                         setCajaOptions(opts);
                       }
                     } catch (err) {
@@ -567,17 +594,23 @@ export default function GastosView({ onBack }: GastosViewProps) {
                 >
                   <option value="">Seleccionar cajero (opcional)</option>
                   {cajeros.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
                   ))}
                 </select>
                 <select
                   value={nuevoGasto.caja}
-                  onChange={(e) => setNuevoGasto({ ...nuevoGasto, caja: e.target.value })}
+                  onChange={(e) =>
+                    setNuevoGasto({ ...nuevoGasto, caja: e.target.value })
+                  }
                   className="form-input"
                 >
                   <option value="">Seleccionar caja (opcional)</option>
                   {cajaOptions.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </select>
               </>

@@ -34,9 +34,7 @@ export default function CierresAdminView({
       let query = supabase.from("cierres").select("*");
       if (fecha) {
         // construir rango a partir del día seleccionado (fecha en formato YYYY-MM-DD)
-        const start = new Date(
-          `${fecha}T00:00:00`
-        ).toISOString();
+        const start = new Date(`${fecha}T00:00:00`).toISOString();
         const end = new Date(`${fecha}T23:59:59.999`).toISOString();
         query = query.gte("fecha", start).lte("fecha", end);
       }
@@ -114,8 +112,12 @@ export default function CierresAdminView({
     const cajero = apertura.cajero;
     const caja = apertura.caja;
 
-    const start = new Date(fechaCierre.slice(0, 10) + "T00:00:00").toISOString();
-    const end = new Date(fechaCierre.slice(0, 10) + "T23:59:59.999").toISOString();
+    const start = new Date(
+      fechaCierre.slice(0, 10) + "T00:00:00"
+    ).toISOString();
+    const end = new Date(
+      fechaCierre.slice(0, 10) + "T23:59:59.999"
+    ).toISOString();
 
     const { data: aperturas } = await supabase
       .from("cierres")
@@ -131,8 +133,8 @@ export default function CierresAdminView({
         ? parseFloat(aperturas[0].fondo_fijo_registrado)
         : 0;
 
-  const desde = start;
-  const hasta = end;
+    const desde = start;
+    const hasta = end;
 
     const [
       { data: pagosEfectivo },
@@ -171,11 +173,12 @@ export default function CierresAdminView({
 
     // Lo registrado: preferir valores ya guardados (ej. fondo de la apertura),
     // para los demás montos no tenemos registro previo y asumimos 0.
-    const fondoFijoRegistrado = aperturas && aperturas.length > 0
-      ? parseFloat(aperturas[0].fondo_fijo_registrado)
-      : apertura.fondo_fijo_registrado
-      ? Number(apertura.fondo_fijo_registrado)
-      : 0;
+    const fondoFijoRegistrado =
+      aperturas && aperturas.length > 0
+        ? parseFloat(aperturas[0].fondo_fijo_registrado)
+        : apertura.fondo_fijo_registrado
+        ? Number(apertura.fondo_fijo_registrado)
+        : 0;
     const efectivoRegistrado = apertura.efectivo_registrado
       ? Number(apertura.efectivo_registrado)
       : 0;
@@ -188,7 +191,8 @@ export default function CierresAdminView({
 
     // Diferencia = lo registrado - lo del día
     const diferencia =
-      (fondoFijoRegistrado - fondoFijoDia) +
+      fondoFijoRegistrado -
+      fondoFijoDia +
       (efectivoRegistrado - efectivoDia) +
       (montoTarjetaRegistrado - tarjetaDia) +
       (transferenciasRegistradas - transferenciasDia);
@@ -246,17 +250,34 @@ export default function CierresAdminView({
     const trans_reg = Number(c.transferencias_registradas || 0);
     const trans_dia = Number(c.transferencias_dia || 0);
     return {
-      total: (fondo_reg - fondo_dia) + (efectivo_reg - efectivo_dia) + (tarjeta_reg - tarjeta_dia) + (trans_reg - trans_dia),
+      total:
+        fondo_reg -
+        fondo_dia +
+        (efectivo_reg - efectivo_dia) +
+        (tarjeta_reg - tarjeta_dia) +
+        (trans_reg - trans_dia),
       efectivo: efectivo_reg - efectivo_dia,
       tarjeta: tarjeta_reg - tarjeta_dia,
       transferencias: trans_reg - trans_dia,
     };
   });
 
-  const sumaDiferencia = diferenciaPorCierre.reduce((sum, d) => sum + d.total, 0);
-  const sumaEfectivoSinAclarar = diferenciaPorCierre.reduce((sum, d) => sum + d.efectivo, 0);
-  const sumaTarjetaSinAclarar = diferenciaPorCierre.reduce((sum, d) => sum + d.tarjeta, 0);
-  const sumaTransferenciasSinAclarar = diferenciaPorCierre.reduce((sum, d) => sum + d.transferencias, 0);
+  const sumaDiferencia = diferenciaPorCierre.reduce(
+    (sum, d) => sum + d.total,
+    0
+  );
+  const sumaEfectivoSinAclarar = diferenciaPorCierre.reduce(
+    (sum, d) => sum + d.efectivo,
+    0
+  );
+  const sumaTarjetaSinAclarar = diferenciaPorCierre.reduce(
+    (sum, d) => sum + d.tarjeta,
+    0
+  );
+  const sumaTransferenciasSinAclarar = diferenciaPorCierre.reduce(
+    (sum, d) => sum + d.transferencias,
+    0
+  );
 
   const handleCerrarCaja = async () => {
     if (!cajaCierre || !valoresCierre) return;
@@ -365,7 +386,7 @@ export default function CierresAdminView({
         .container {
           max-width: 1400px;
           margin: 0 auto;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .header {
@@ -388,12 +409,12 @@ export default function CierresAdminView({
           display: flex;
           align-items: center;
           gap: 16px;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .btn-back {
-          background: rgba(255,255,255,0.1);
-          color: #fff;
+          background: #f1f5f9;
+          color: var(--text-primary);
           border: 1px solid var(--border);
           border-radius: 8px;
           padding: 8px 16px;
@@ -406,7 +427,7 @@ export default function CierresAdminView({
         }
 
         .page-title {
-          color: #fff;
+          color: var(--text-primary);
           font-size: 1.5rem;
           font-weight: 700;
           margin: 0;
@@ -416,15 +437,15 @@ export default function CierresAdminView({
           display: flex;
           align-items: center;
           gap: 1rem;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .date-input {
-          background: rgba(255,255,255,0.1);
+          background: #f8fafc;
           border: 1px solid var(--border);
           border-radius: 8px;
           padding: 10px 12px;
-          color: #fff;
+          color: var(--text-primary);
           font-size: 1rem;
         }
 
@@ -443,8 +464,8 @@ export default function CierresAdminView({
         }
 
         .btn-secondary {
-          background: rgba(255,255,255,0.1);
-          color: #fff;
+          background: #f1f5f9;
+          color: var(--text-primary);
           border: 1px solid var(--border);
           border-radius: 8px;
           padding: 10px 20px;
@@ -457,7 +478,7 @@ export default function CierresAdminView({
           grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
           gap: 1.5rem;
           margin-bottom: 2rem;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .stat-card {
@@ -512,11 +533,11 @@ export default function CierresAdminView({
           margin-top: 1rem;
           max-height: 200px;
           overflow-y: auto;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .open-item {
-          background: rgba(255,255,255,0.05);
+          background: #f8fafc;
           border-radius: 8px;
           padding: 12px;
           margin-bottom: 8px;
@@ -524,7 +545,8 @@ export default function CierresAdminView({
           justify-content: space-between;
           align-items: center;
           font-size: 0.875rem;
-          color: #fff;
+          color: var(--text-primary);
+          border: 1px solid var(--border);
         }
 
         .btn-small {
@@ -558,7 +580,7 @@ export default function CierresAdminView({
         }
 
         .title {
-          color: #fff;
+          color: var(--text-primary);
           font-weight: 700;
           font-size: 1.75rem;
           margin-bottom: 2rem;
@@ -566,32 +588,33 @@ export default function CierresAdminView({
         }
 
         .table-container {
-          background: rgba(255,255,255,0.05);
+          background: white;
           border-radius: 12px;
           overflow: hidden;
           box-shadow: var(--shadow);
-          color: #fff;
+          color: var(--text-primary);
+          border: 1px solid var(--border);
         }
 
         .table {
           width: 100%;
           border-collapse: collapse;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .table th {
-          background: rgba(255,255,255,0.08);
+          background: #f8fafc;
           padding: 1rem;
           text-align: left;
           font-weight: 600;
-          color: #fff;
+          color: var(--text-primary);
           border-bottom: 1px solid var(--border);
         }
 
         .table td {
           padding: 1rem;
           border-bottom: 1px solid var(--border);
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .status-sin-aclarar { 
@@ -679,28 +702,28 @@ export default function CierresAdminView({
           grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
           gap: 1rem;
           margin: 1rem 0;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .valor-item {
-          background: rgba(255,255,255,0.05);
+          background: #f8fafc;
           padding: 1rem;
           border-radius: 8px;
           text-align: center;
           border: 1px solid var(--border);
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .valor-diferencia {
           font-weight: 700;
           font-size: 1.1rem;
-          color: #fff;
+          color: var(--text-primary);
         }
 
         .loading {
           text-align: center;
           padding: 3rem;
-          color: #fff;
+          color: var(--text-secondary);
         }
 
         @media (max-width: 768px) {
@@ -786,23 +809,44 @@ export default function CierresAdminView({
                 minimumFractionDigits: 2,
               })}
             </div>
-              {/* Desglose por tipo */}
-              <div style={{ marginTop: "0.75rem" }}>
-                <div className="valores-grid" style={{ gap: "0.5rem" }}>
-                  <div className="valor-item" style={{ padding: "0.5rem" }}>
-                    <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>Efectivo</div>
-                    <div style={{ fontWeight: 700 }}>L {sumaEfectivoSinAclarar.toLocaleString("de-DE", { minimumFractionDigits: 2 })}</div>
+            {/* Desglose por tipo */}
+            <div style={{ marginTop: "0.75rem" }}>
+              <div className="valores-grid" style={{ gap: "0.5rem" }}>
+                <div className="valor-item" style={{ padding: "0.5rem" }}>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>
+                    Efectivo
                   </div>
-                  <div className="valor-item" style={{ padding: "0.5rem" }}>
-                    <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>Tarjeta</div>
-                    <div style={{ fontWeight: 700 }}>L {sumaTarjetaSinAclarar.toLocaleString("de-DE", { minimumFractionDigits: 2 })}</div>
+                  <div style={{ fontWeight: 700 }}>
+                    L{" "}
+                    {sumaEfectivoSinAclarar.toLocaleString("de-DE", {
+                      minimumFractionDigits: 2,
+                    })}
                   </div>
-                  <div className="valor-item" style={{ padding: "0.5rem" }}>
-                    <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>Transferencias</div>
-                    <div style={{ fontWeight: 700 }}>L {sumaTransferenciasSinAclarar.toLocaleString("de-DE", { minimumFractionDigits: 2 })}</div>
+                </div>
+                <div className="valor-item" style={{ padding: "0.5rem" }}>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>
+                    Tarjeta
+                  </div>
+                  <div style={{ fontWeight: 700 }}>
+                    L{" "}
+                    {sumaTarjetaSinAclarar.toLocaleString("de-DE", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+                <div className="valor-item" style={{ padding: "0.5rem" }}>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>
+                    Transferencias
+                  </div>
+                  <div style={{ fontWeight: 700 }}>
+                    L{" "}
+                    {sumaTransferenciasSinAclarar.toLocaleString("de-DE", {
+                      minimumFractionDigits: 2,
+                    })}
                   </div>
                 </div>
               </div>
+            </div>
             <button className="clave-btn" onClick={handleOpenClaveModal}>
               🔑 Clave Aclaración
             </button>

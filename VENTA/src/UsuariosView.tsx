@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 interface Usuario {
   id: string;
@@ -16,28 +16,28 @@ interface UsuariosViewProps {
 export default function UsuariosView({ onBack }: UsuariosViewProps) {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [form, setForm] = useState<Partial<Usuario>>({});
   const [editId, setEditId] = useState<string | null>(null);
 
   const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/usuarios`;
-  const API_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
+  const API_KEY = import.meta.env.VITE_SUPABASE_KEY || "";
 
   // Obtener usuarios
   useEffect(() => {
-    fetch(API_URL + '?select=*', {
+    fetch(API_URL + "?select=*", {
       headers: {
         apikey: API_KEY,
         Authorization: `Bearer ${API_KEY}`,
       },
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         setUsuarios(data);
         setLoading(false);
       })
       .catch(() => {
-        setError('Error al cargar usuarios');
+        setError("Error al cargar usuarios");
         setLoading(false);
       });
   }, []);
@@ -45,48 +45,48 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
   // Crear o editar usuario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       if (editId) {
         // Editar
         await fetch(`${API_URL}?id=eq.${editId}`, {
-          method: 'PATCH',
+          method: "PATCH",
           headers: {
             apikey: API_KEY,
             Authorization: `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation',
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
           },
           body: JSON.stringify(form),
         });
       } else {
         // Crear
         await fetch(API_URL, {
-          method: 'POST',
+          method: "POST",
           headers: {
             apikey: API_KEY,
             Authorization: `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation',
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
           },
           body: JSON.stringify(form),
         });
       }
       window.location.reload();
     } catch {
-      setError('Error al guardar usuario');
+      setError("Error al guardar usuario");
       setLoading(false);
     }
   };
 
   // Eliminar usuario
   const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Eliminar usuario?')) return;
+    if (!window.confirm("¿Eliminar usuario?")) return;
     setLoading(true);
     try {
       await fetch(`${API_URL}?id=eq.${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
           apikey: API_KEY,
           Authorization: `Bearer ${API_KEY}`,
@@ -94,7 +94,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
       });
       window.location.reload();
     } catch {
-      setError('Error al eliminar usuario');
+      setError("Error al eliminar usuario");
       setLoading(false);
     }
   };
@@ -112,42 +112,61 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: '40px auto', background: 'rgba(255,255,255,0.95)', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.12)', padding: 32 }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+    <div
+      style={{
+        maxWidth: 900,
+        margin: "40px auto",
+        background: "rgba(255,255,255,0.95)",
+        borderRadius: 16,
+        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+        padding: 32,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
         <button
           onClick={onBack}
           style={{
-            background: '#fff',
-            color: '#1976d2',
-            border: '2px solid #1976d2',
+            background: "#fff",
+            color: "#1976d2",
+            border: "2px solid #1976d2",
             borderRadius: 8,
-            padding: '8px 20px',
+            padding: "8px 20px",
             fontWeight: 600,
             fontSize: 16,
-            cursor: 'pointer',
+            cursor: "pointer",
             marginRight: 16,
-            boxShadow: '0 2px 8px #1976d222',
-            transition: 'background 0.2s, color 0.2s',
+            boxShadow: "0 2px 8px #1976d222",
+            transition: "background 0.2s, color 0.2s",
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = '#1976d2';
-            e.currentTarget.style.color = '#fff';
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#1976d2";
+            e.currentTarget.style.color = "#fff";
           }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = '#fff';
-            e.currentTarget.style.color = '#1976d2';
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#fff";
+            e.currentTarget.style.color = "#1976d2";
           }}
         >
           ← Volver
         </button>
-        <h2 style={{ color: '#1976d2', marginBottom: 0 }}>Usuarios</h2>
+        <h2 style={{ color: "#1976d2", marginBottom: 0 }}>Usuarios</h2>
       </div>
-      <button onClick={handleNew} style={{ marginLeft: 8, marginBottom: 16 }}>Nuevo usuario</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {loading ? <p>Cargando...</p> : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24 }}>
+      <button onClick={handleNew} style={{ marginLeft: 8, marginBottom: 16 }}>
+        Nuevo usuario
+      </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {loading ? (
+        <p>Cargando...</p>
+      ) : (
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            marginBottom: 24,
+          }}
+        >
           <thead>
-            <tr style={{ background: '#e3f2fd' }}>
+            <tr style={{ background: "#e3f2fd" }}>
               <th>Nombre</th>
               <th>Código</th>
               <th>Rol</th>
@@ -156,49 +175,62 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
             </tr>
           </thead>
           <tbody>
-            {usuarios.map(u => (
-              <tr key={u.id} style={{ borderBottom: '1px solid #eee' }}>
+            {usuarios.map((u) => (
+              <tr key={u.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td>{u.nombre}</td>
                 <td>{u.codigo}</td>
                 <td>{u.rol}</td>
-                <td>{u.ip || '-'}</td>
+                <td>{u.ip || "-"}</td>
                 <td>
-                  <button onClick={() => handleEdit(u)} style={{ marginRight: 8 }}>Editar</button>
-                  <button onClick={() => handleDelete(u.id)} style={{ color: 'red' }}>Eliminar</button>
+                  <button
+                    onClick={() => handleEdit(u)}
+                    style={{ marginRight: 8 }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(u.id)}
+                    style={{ color: "red" }}
+                  >
+                    Eliminar
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 16 }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}
+      >
         <input
           type="text"
           placeholder="Nombre"
-          value={form.nombre || ''}
-          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          value={form.nombre || ""}
+          onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
           required
           style={{ flex: 1, minWidth: 120 }}
         />
         <input
           type="text"
           placeholder="Código"
-          value={form.codigo || ''}
-          onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))}
+          value={form.codigo || ""}
+          onChange={(e) => setForm((f) => ({ ...f, codigo: e.target.value }))}
           required
           style={{ flex: 1, minWidth: 120 }}
         />
         <input
           type="password"
           placeholder="Clave"
-          value={form.clave || ''}
-          onChange={e => setForm(f => ({ ...f, clave: e.target.value }))}
+          value={form.clave || ""}
+          onChange={(e) => setForm((f) => ({ ...f, clave: e.target.value }))}
           required
           style={{ flex: 1, minWidth: 120 }}
         />
         <select
-          value={form.rol || 'cajero'}
-          onChange={e => setForm(f => ({ ...f, rol: e.target.value }))}
+          value={form.rol || "cajero"}
+          onChange={(e) => setForm((f) => ({ ...f, rol: e.target.value }))}
           style={{ flex: 1, minWidth: 120 }}
         >
           <option value="cajero">Cajero</option>
@@ -207,12 +239,21 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
         <input
           type="text"
           placeholder="IP"
-          value={form.ip || ''}
-          onChange={e => setForm(f => ({ ...f, ip: e.target.value }))}
+          value={form.ip || ""}
+          onChange={(e) => setForm((f) => ({ ...f, ip: e.target.value }))}
           style={{ flex: 1, minWidth: 120 }}
         />
-        <button type="submit" style={{ background: '#1976d2', color: '#fff', borderRadius: 8, padding: '8px 24px', fontWeight: 600 }}>
-          {editId ? 'Guardar cambios' : 'Crear usuario'}
+        <button
+          type="submit"
+          style={{
+            background: "#1976d2",
+            color: "#fff",
+            borderRadius: 8,
+            padding: "8px 24px",
+            fontWeight: 600,
+          }}
+        >
+          {editId ? "Guardar cambios" : "Crear usuario"}
         </button>
       </form>
     </div>

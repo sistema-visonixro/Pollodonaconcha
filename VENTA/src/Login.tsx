@@ -1,67 +1,80 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 interface LoginProps {
   onLogin: (user: any) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [codigo, setCodigo] = useState('');
-  const [clave, setClave] = useState('');
-  const [error, setError] = useState('');
+  const [codigo, setCodigo] = useState("");
+  const [clave, setClave] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
     try {
-  const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/usuarios?select=*`;
-        const API_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
-  const res = await fetch(API_URL, {
+      const API_URL = `${
+        import.meta.env.VITE_SUPABASE_URL
+      }/rest/v1/usuarios?select=*`;
+      const API_KEY = import.meta.env.VITE_SUPABASE_KEY || "";
+      const res = await fetch(API_URL, {
         headers: {
           apikey: API_KEY,
           Authorization: `Bearer ${API_KEY}`,
         },
       });
       const users = await res.json();
-      const user = users.find((u: any) => u.codigo === codigo && u.clave === clave);
+      const user = users.find(
+        (u: any) => u.codigo === codigo && u.clave === clave
+      );
       if (user) {
         onLogin(user);
       } else {
-        setError('Credenciales incorrectas');
+        setError("Credenciales incorrectas");
       }
     } catch (err) {
-      setError('Error de conexión');
+      setError("Error de conexión");
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+      }}
+    >
       <form
         onSubmit={handleSubmit}
         style={{
-          background: 'rgba(255,255,255,0.85)',
+          background: "rgba(255,255,255,0.85)",
           borderRadius: 16,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+          boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
           padding: 32,
           width: 320,
-          display: 'flex',
-          flexDirection: 'column',
+          display: "flex",
+          flexDirection: "column",
           gap: 16,
         }}
       >
-        <h2 style={{ textAlign: 'center', marginBottom: 8, color: '#333' }}>Iniciar sesión</h2>
+        <h2 style={{ textAlign: "center", marginBottom: 8, color: "#333" }}>
+          Iniciar sesión
+        </h2>
         <input
           type="text"
           placeholder="Código"
           value={codigo}
-          onChange={e => setCodigo(e.target.value)}
+          onChange={(e) => setCodigo(e.target.value)}
           required
           style={{
-            padding: '10px',
+            padding: "10px",
             borderRadius: 8,
-            border: '1px solid #ccc',
+            border: "1px solid #ccc",
             fontSize: 16,
           }}
         />
@@ -69,12 +82,12 @@ export default function Login({ onLogin }: LoginProps) {
           type="password"
           placeholder="Clave"
           value={clave}
-          onChange={e => setClave(e.target.value)}
+          onChange={(e) => setClave(e.target.value)}
           required
           style={{
-            padding: '10px',
+            padding: "10px",
             borderRadius: 8,
-            border: '1px solid #ccc',
+            border: "1px solid #ccc",
             fontSize: 16,
           }}
         />
@@ -82,20 +95,20 @@ export default function Login({ onLogin }: LoginProps) {
           type="submit"
           disabled={loading}
           style={{
-            padding: '12px',
+            padding: "12px",
             borderRadius: 8,
-            background: '#1976d2',
-            color: '#fff',
-            fontWeight: 'bold',
+            background: "#1976d2",
+            color: "#fff",
+            fontWeight: "bold",
             fontSize: 16,
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'background 0.2s',
+            border: "none",
+            cursor: "pointer",
+            transition: "background 0.2s",
           }}
         >
-          {loading ? 'Ingresando...' : 'Ingresar'}
+          {loading ? "Ingresando..." : "Ingresar"}
         </button>
-        {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
       </form>
     </div>
   );

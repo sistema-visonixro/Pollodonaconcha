@@ -648,7 +648,8 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
             >
               <button
                 style={{
-                  background: "linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)",
+                  background:
+                    "linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)",
                   color: "white",
                   fontWeight: 700,
                   border: "none",
@@ -717,27 +718,42 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔐</div>
-            <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "1.5rem", fontWeight: 800, marginBottom: "1.5rem" }}>
+            <h3
+              style={{
+                marginTop: 0,
+                color: "#0f172a",
+                fontSize: "1.5rem",
+                fontWeight: 800,
+                marginBottom: "1.5rem",
+              }}
+            >
               Clave de Aclaración
             </h3>
             {cargandoClave ? (
-              <div style={{ color: "#64748b", fontSize: "1.05rem" }}>Consultando seguridad...</div>
+              <div style={{ color: "#64748b", fontSize: "1.05rem" }}>
+                Consultando seguridad...
+              </div>
             ) : claveCaja ? (
-              <div style={{ 
-                fontSize: "3rem", 
-                fontWeight: 900, 
-                color: "#3b82f6",
-                letterSpacing: "8px",
-                marginBottom: "1.5rem",
-                padding: "1rem",
-                background: "linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)",
-                borderRadius: "16px",
-                border: "2px dashed #3b82f6"
-              }}>
+              <div
+                style={{
+                  fontSize: "3rem",
+                  fontWeight: 900,
+                  color: "#3b82f6",
+                  letterSpacing: "8px",
+                  marginBottom: "1.5rem",
+                  padding: "1rem",
+                  background:
+                    "linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)",
+                  borderRadius: "16px",
+                  border: "2px dashed #3b82f6",
+                }}
+              >
                 {claveCaja}
               </div>
             ) : (
-              <div style={{ color: "#94a3b8", fontSize: "1.05rem" }}>No se encontró la clave</div>
+              <div style={{ color: "#94a3b8", fontSize: "1.05rem" }}>
+                No se encontró la clave
+              </div>
             )}
             <div style={{ marginTop: 16 }}>
               <button
@@ -745,7 +761,8 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                   padding: "0.85rem 2.5rem",
                   borderRadius: 12,
                   border: "none",
-                  background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                  background:
+                    "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
                   color: "white",
                   fontWeight: 700,
                   fontSize: "1rem",

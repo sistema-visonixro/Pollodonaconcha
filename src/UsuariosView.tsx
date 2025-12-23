@@ -724,7 +724,26 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
           onChangeEmail={setAdminEmail}
           onSubmit={handleAdminModalSubmit}
         />
-        {showModal && (white",
+        {showModal && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(15,23,42,0.5)",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+            }}
+            onClick={() => setShowModal(false)}
+          >
+            <div
+              style={{
+                background: "white",
                 borderRadius: 24,
                 padding: 32,
                 minWidth: 320,
@@ -732,7 +751,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                 width: "100%",
                 boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
                 position: "relative",
-                color: var(--text-primary),
+                color: "var(--text-primary)",
                 border: "1px solid #e2e8f0",
               }}
               onClick={(e) => e.stopPropagation()}
@@ -745,7 +764,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                   right: 12,
                   background: "#f1f5f9",
                   border: "none",
-                  color: var(--text-primary),
+                  color: "var(--text-primary)",
                   fontSize: 24,
                   cursor: "pointer",
                   width: 32,
@@ -759,8 +778,16 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
               >
                 ×
               </button>
-              <h3 style={{ color: var(--text-primary), marginBottom: "1rem", fontSize: "1.5rem", fontWeight: 800
-            >
+              <h3
+                style={{
+                  color: "var(--text-primary)",
+                  marginBottom: "1rem",
+                  fontSize: "1.5rem",
+                  fontWeight: 800,
+                }}
+              >
+                {editId ? "✏️ Editar Usuario" : "👤 Nuevo Usuario"}
+              </h3>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
