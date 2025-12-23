@@ -8,6 +8,7 @@ interface Usuario {
   codigo: string;
   clave: string;
   rol: string;
+  email?: string;
   caja?: string;
   ip?: string;
 }
@@ -22,12 +23,14 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
   const [adminEditId, setAdminEditId] = useState<string | null>(null);
   const [adminNombre, setAdminNombre] = useState("");
   const [adminClave, setAdminClave] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminError, setAdminError] = useState("");
 
   const handleAdminUpdate = (adminUser: Usuario) => {
     setAdminNombre(adminUser.nombre || "");
     setAdminClave("");
+    setAdminEmail(adminUser.email || "");
     setAdminEditId(adminUser.id);
     setShowAdminModal(true);
   };
@@ -64,7 +67,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
           "Content-Type": "application/json",
           Prefer: "return=representation",
         },
-        body: JSON.stringify({ nombre: adminNombre, clave: adminClave }),
+        body: JSON.stringify({ nombre: adminNombre, clave: adminClave, email: adminEmail }),
       });
       // Recargar datos
       const res = await fetch(API_URL + "?select=*", {
@@ -88,7 +91,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
   const [editId, setEditId] = useState<string | null>(null);
 
   const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/usuarios`;
-  const API_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
+  const API_KEY = import.meta.env.VITE_SUPABASE_KEY || "";
 
   // Cargar usuarios
   useEffect(() => {
@@ -199,6 +202,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
       codigo: usuario.codigo || "",
       clave: "", // Nunca mostrar la clave anterior
       rol: usuario.rol || "cajero",
+      email: usuario.email || "",
       caja: usuario.caja || "",
       ip: usuario.ip || "",
     });
@@ -530,6 +534,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                   <th>ID</th>
                   <th>Nombre</th>
                   <th>Código</th>
+                  <th>Email</th>
                   <th>Rol</th>
                   <th>Caja</th>
                   <th>IP</th>
@@ -546,6 +551,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                       <strong>{u.nombre}</strong>
                     </td>
                     <td>{u.codigo}</td>
+                    <td style={{ color: "var(--text-secondary)" }}>{u.email || "-"}</td>
                     <td
                       style={{
                         color:
@@ -594,14 +600,45 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
             <div className="cards-grid" style={{ marginTop: 8 }}>
               {usuarios.map((u) => (
                 <div className="user-card" key={u.id}>
-                  <div className="user-avatar-sm">{u.nombre?.charAt(0)?.toUpperCase()}</div>
-                  <div className="user-body">
-                    <div className="user-name">{u.nombre} <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>#{u.codigo}</span></div>
-                    <div className="user-meta">{u.rol} · Caja: {u.caja || '-' } · IP: {u.ip || '-'}</div>
+                  <div className="user-avatar-sm">
+                    {u.nombre?.charAt(0)?.toUpperCase()}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {u.rol !== 'Admin' && <button className="btn-table btn-edit" onClick={() => handleEdit(u)}>Editar</button>}
-                    {u.rol === 'Admin' && <button className="btn-table btn-update" onClick={() => handleAdminUpdate(u)} style={{ background: '#1976d2', color: '#fff' }}>Actualizar</button>}
+                  <div className="user-body">
+                    <div className="user-name">
+                      {u.nombre}{" "}
+                      <span
+                        style={{
+                          color: "var(--text-secondary)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        #{u.codigo}
+                      </span>
+                    </div>
+                    <div className="user-meta">
+                      {u.rol} · Caja: {u.caja || "-"} · IP: {u.ip || "-"}
+                    </div>
+                  </div>
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
+                    {u.rol !== "Admin" && (
+                      <button
+                        className="btn-table btn-edit"
+                        onClick={() => handleEdit(u)}
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {u.rol === "Admin" && (
+                      <button
+                        className="btn-table btn-update"
+                        onClick={() => handleAdminUpdate(u)}
+                        style={{ background: "#1976d2", color: "#fff" }}
+                      >
+                        Actualizar
+                      </button>
+                    )}
                     {/* Eliminado botón de eliminar en vista móvil */}
                   </div>
                 </div>
@@ -634,6 +671,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                 codigo: "",
                 clave: "",
                 rol: "cajero",
+                email: "",
                 caja: "",
                 ip: "",
               });
@@ -652,11 +690,13 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
           open={showAdminModal}
           nombre={adminNombre}
           clave={adminClave}
+          email={adminEmail}
           loading={adminLoading}
           error={adminError}
           onClose={handleAdminModalClose}
           onChangeNombre={setAdminNombre}
           onChangeClave={setAdminClave}
+          onChangeEmail={setAdminEmail}
           onSubmit={handleAdminModalSubmit}
         />
         {showModal && (
@@ -719,6 +759,14 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                   }
                   required
                   style={{ color: "#43a047", fontWeight: 700 }}
+                />
+                <input
+                  className="form-input"
+                  type="email"
+                  placeholder="Email (opcional)"
+                  value={form.email || ""}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  style={{ color: "#43a047" }}
                 />
                 <input
                   className="form-input"

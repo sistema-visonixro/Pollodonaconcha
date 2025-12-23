@@ -4,11 +4,13 @@ interface AdminEditModalProps {
   open: boolean;
   nombre: string;
   clave: string;
+  email?: string;
   loading?: boolean;
   error?: string;
   onClose: () => void;
   onChangeNombre: (nombre: string) => void;
   onChangeClave: (clave: string) => void;
+  onChangeEmail?: (email: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -16,11 +18,13 @@ const AdminEditModal: React.FC<AdminEditModalProps> = ({
   open,
   nombre,
   clave,
+  email,
   loading,
   error,
   onClose,
   onChangeNombre,
   onChangeClave,
+  onChangeEmail,
   onSubmit,
 }) => {
   if (!open) return null;
@@ -82,6 +86,14 @@ const AdminEditModal: React.FC<AdminEditModalProps> = ({
             onChange={(e) => onChangeNombre(e.target.value)}
             required
             style={{ color: "#43a047", fontWeight: 700 }}
+          />
+          <input
+            className="form-input"
+            type="email"
+            placeholder="Email (opcional)"
+            value={email || ""}
+            onChange={(e) => onChangeEmail && onChangeEmail(e.target.value)}
+            style={{ color: "#43a047" }}
           />
           <input
             className="form-input"
