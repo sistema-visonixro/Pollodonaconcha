@@ -20,8 +20,10 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(true);
     setError("");
     try {
-      const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/usuarios?select=*`;
-      const API_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
+      const API_URL = `${
+        import.meta.env.VITE_SUPABASE_URL
+      }/rest/v1/usuarios?select=*`;
+      const API_KEY = import.meta.env.VITE_SUPABASE_KEY || "";
       const res = await fetch(API_URL, {
         headers: {
           apikey: API_KEY,
@@ -65,13 +67,23 @@ export default function Login({ onLogin }: LoginProps) {
             return;
           }
         }
-          setShowSplash(true);
-          setTimeout(() => {
-            // Guardar id, usuario, rol y caja en localStorage
-            localStorage.setItem("usuario", JSON.stringify({ id: user.id, usuario: user.nombre, rol: user.rol, caja: user.caja }));
-            onLogin(user);
-            window.location.reload();
-          }, 2000);
+        setShowSplash(true);
+        setTimeout(() => {
+          // Guardar id, usuario, rol y caja en localStorage
+          localStorage.setItem(
+            "usuario",
+            JSON.stringify({
+              id: user.id,
+              usuario: user.nombre,
+              nombre: user.nombre,
+              email: user.email || "",
+              rol: user.rol,
+              caja: user.caja,
+            })
+          );
+          onLogin(user);
+          window.location.reload();
+        }, 2000);
       } else {
         setError("Credenciales incorrectas");
       }
