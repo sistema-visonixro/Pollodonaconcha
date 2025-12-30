@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
-import { NOMBRE_NEGOCIO_UPPER } from "./empresa";
 import { getLocalDayRange, formatToHondurasLocal } from "./utils/fechas";
-
+import { useDatosNegocio } from "./useDatosNegocio";
 interface UsuarioActual {
   nombre: string;
   [key: string]: any;
@@ -19,6 +18,9 @@ export default function RegistroCierreView({
   caja,
   onCierreGuardado,
 }: RegistroCierreViewProps) {
+  // Cargar datos del negocio
+  const { datos: datosNegocio } = useDatosNegocio();
+  
   const [fondoFijo, setFondoFijo] = useState("");
   const [efectivo, setEfectivo] = useState("");
   const [tarjeta, setTarjeta] = useState("");
@@ -193,7 +195,7 @@ export default function RegistroCierreView({
   }
 
   const printCierreReport = (registro: any, gastosDia: number) => {
-    const logoUrl = "/favicon.ico";
+    const logoUrl = datosNegocio.logo_url || "/favicon.ico";
     const img = new Image();
     img.src = logoUrl;
 
@@ -222,7 +224,7 @@ export default function RegistroCierreView({
           <body>
             <div class="header">
              
-              <div style="font-size: 18px;">${NOMBRE_NEGOCIO_UPPER}</div>
+              <div style="font-size: 18px;">${datosNegocio.nombre_negocio.toUpperCase()}</div>
           
               <div class="title">REPORTE DE CIERRE DE CAJA</div>
             </div>

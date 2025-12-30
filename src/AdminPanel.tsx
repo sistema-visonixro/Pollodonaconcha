@@ -15,7 +15,8 @@ type ViewType =
   | "cajaOperada"
   | "cierreadmin"
   | "etiquetas"
-  | "recibo";
+  | "recibo"
+  | "datosNegocio";
 
 const cards: {
   label: string;
@@ -66,6 +67,13 @@ const cards: {
     color: "#f57c00",
     subtitle: "Conciliación diaria",
   },
+  {
+    label: "Mis Datos",
+    icon: "🏪",
+    view: "datosNegocio",
+    color: "#00897b",
+    subtitle: "Información del negocio",
+  },
 ];
 
 interface AdminPanelProps {
@@ -75,9 +83,10 @@ interface AdminPanelProps {
 
 import { useState } from "react";
 import { supabase } from "./supabaseClient";
-import { NOMBRE_NEGOCIO } from "./empresa";
+import { useDatosNegocio } from "./useDatosNegocio";
 
 const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
+  const { datos: datosNegocio } = useDatosNegocio();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showClaveModal, setShowClaveModal] = useState(false);
   const [claveCaja, setClaveCaja] = useState<string | null>(null);
@@ -147,7 +156,7 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         border-bottom: 1px solid var(--border);
-        padding: 2rem 2.5rem;
+        padding: 0.75rem 1.5rem;
         position: sticky;
         top: 0;
         z-index: 100;
@@ -174,20 +183,20 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
       
       .user-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 0.75rem;
   color: var(--text-secondary);
   background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #dbeafe 100%);
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
+  border-radius: 10px;
+  padding: 0.5rem 0.875rem;
   box-shadow: 0 4px 20px rgba(59,130,246,0.12);
   border: 1px solid #e0e7ff;
       }
       
       .user-avatar {
-        width: 56px;
-        height: 56px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         background: linear-gradient(135deg, #3b82f6, #8b5cf6);
         display: flex;
@@ -195,22 +204,25 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
         justify-content: center;
         font-weight: 800;
         color: white;
-        font-size: 1.4rem;
+        font-size: 0.95rem;
         box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+        flex-shrink: 0;
       }
       
       .user-details h1 {
         margin: 0;
-        font-size: 1.15rem;
+        font-size: 0.875rem;
         font-weight: 700;
         color: #0f172a;
+        line-height: 1.2;
       }
       
       .user-role {
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         color: #3b82f6;
         margin: 0;
         font-weight: 600;
+        line-height: 1.2;
       }
       
       .main-content {
@@ -409,97 +421,100 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
+                flexDirection: "row",
                 alignItems: "center",
+                gap: "0.75rem",
               }}
             >
-              <img
-                src="https://i.imgur.com/4M9UCRM.jpeg"
-                alt="Logo"
-                className="brand-image"
-                style={{
-                  borderRadius: 12,
-                  objectFit: "cover",
-                }}
-              />
+              {datosNegocio.logo_url ? (
+                <img
+                  src={datosNegocio.logo_url}
+                  alt="Logo"
+                  className="brand-image"
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    borderRadius: 10,
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg, #667eea, #764ba2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "1.75rem",
+                  }}
+                >
+                  🏪
+                </div>
+              )}
               <span
                 style={{
                   display: "block",
-                  textAlign: "center",
+                  textAlign: "left",
                   fontWeight: 800,
-                  fontSize: "1.7rem",
+                  fontSize: "1.25rem",
                   color: "#0f172a",
-                  marginTop: "0.5rem",
-                  letterSpacing: "2px",
+                  letterSpacing: "1px",
                 }}
               >
-                {NOMBRE_NEGOCIO}
+                {datosNegocio.nombre_negocio}
               </span>
             </div>
           </div>
           <div className="user-info">
-            <div className="user-avatar" style={{ marginBottom: "0.5rem" }}>
+            <div className="user-avatar">
               {user.nombre?.charAt(0).toUpperCase()}
             </div>
-            <div className="user-details" style={{ textAlign: "center" }}>
-              <h1
-                style={{
-                  fontSize: "1.2rem",
-                  fontWeight: 700,
-                  margin: 0,
-                  color: "#0f172a",
-                }}
-              >
-                {user.nombre}
-              </h1>
-              <p
-                className="user-role"
-                style={{
-                  fontSize: "0.95rem",
-                  color: "#3b82f6",
-                  margin: 0,
-                  fontWeight: 600,
-                }}
-              >
-                Administrador
-              </p>
+            <div className="user-details">
+              <h1>{user.nombre}</h1>
+              <p className="user-role">Administrador</p>
             </div>
             <button
-              className="btn-primary"
               style={{
-                marginTop: "1rem",
-                width: "100%",
-                fontSize: "1rem",
                 background: "linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)",
                 color: "white",
-                fontWeight: 700,
+                fontWeight: 600,
                 border: "none",
-                borderRadius: "12px",
-                boxShadow: "0 4px 16px rgba(239,68,68,0.25)",
+                borderRadius: "8px",
                 cursor: "pointer",
-                padding: "0.85rem 0",
-                transition: "all 0.3s ease",
+                padding: "0.5rem 0.875rem",
+                fontSize: "0.8125rem",
+                boxShadow: "0 2px 8px rgba(239,68,68,0.2)",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
               }}
               onClick={() => setShowLogoutModal(true)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(239,68,68,0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(239,68,68,0.2)";
+              }}
             >
-              🔒 Cerrar sesión
+              🔒 Salir
             </button>
-            {/* Botón Clave de caja debajo de Cerrar sesión */}
             <button
-              className="btn-primary"
               style={{
-                marginTop: "0.75rem",
-                width: "100%",
-                fontSize: "1rem",
                 background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
                 color: "white",
-                fontWeight: 700,
+                fontWeight: 600,
                 border: "none",
-                borderRadius: "12px",
-                boxShadow: "0 4px 16px rgba(59,130,246,0.25)",
+                borderRadius: "8px",
                 cursor: "pointer",
-                padding: "0.85rem 0",
-                transition: "all 0.3s ease",
+                padding: "0.5rem 0.875rem",
+                fontSize: "0.8125rem",
+                boxShadow: "0 2px 8px rgba(59,130,246,0.2)",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
               }}
               onClick={async () => {
                 setShowClaveModal(true);
@@ -522,8 +537,16 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
                   setCargandoClave(false);
                 }
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59,130,246,0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(59,130,246,0.2)";
+              }}
             >
-              🔐 Clave de caja
+              🔐 Clave
             </button>
           </div>
         </div>

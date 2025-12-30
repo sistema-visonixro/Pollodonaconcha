@@ -1,10 +1,19 @@
 import React from "react";
+import { getBackgroundStyle } from "./assets/images";
+import { useDatosNegocio } from "./useDatosNegocio";
 
 export default function FondoImagen({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { datos } = useDatosNegocio();
+  
+  // Usar el logo del negocio como fondo, o usar el fondo por defecto
+  const backgroundStyle = datos.logo_url 
+    ? `url(${datos.logo_url}) center/cover no-repeat`
+    : getBackgroundStyle();
+  
   return (
     <div
       style={{
@@ -16,8 +25,7 @@ export default function FondoImagen({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background:
-          "url(https://i.imgur.com/UiSIq00.jpeg) center/cover no-repeat",
+        background: backgroundStyle,
         zIndex: 9999,
       }}
     >

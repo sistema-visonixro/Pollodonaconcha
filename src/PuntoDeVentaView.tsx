@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { NOMBRE_NEGOCIO, NOMBRE_NEGOCIO_UPPER } from "./empresa";
+import { NOMBRE_NEGOCIO } from "./empresa";
 import PagoModal from "./PagoModal";
 import RegistroCierreView from "./RegistroCierreView";
 import { supabase } from "./supabaseClient";
 import { getLocalDayRange, formatToHondurasLocal } from "./utils/fechas";
+import { useDatosNegocio } from "./useDatosNegocio";
 
 interface Producto {
   id: string;
@@ -203,6 +204,10 @@ export default function PuntoDeVentaView({
         handler as EventListener
       );
   }, []);
+  
+  // Cargar datos del negocio
+  const { datos: datosNegocio } = useDatosNegocio();
+  
   const [facturaActual, setFacturaActual] = useState<string>("");
   const [showPagoModal, setShowPagoModal] = useState(false);
   const [showClienteModal, setShowClienteModal] = useState(false);
@@ -1047,16 +1052,15 @@ export default function PuntoDeVentaView({
             }px; background:#fff;'>
                 <!-- Logo -->
                 <div style='text-align:center; margin-bottom:12px;'>
-                  <img src='/favicon.ico' alt='${NOMBRE_NEGOCIO}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
+                  <img src='${datosNegocio.logo_url || '/favicon.ico'}' alt='${datosNegocio.nombre_negocio}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
                 </div>
                 
                 <!-- Información del Negocio -->
-                <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${NOMBRE_NEGOCIO_UPPER}</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>ISLAS DE LA BAHÍA, SANDY BAY</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>BO. LA UVA</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: 18071993019392</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>PROPIETARIO: CESAR BENIGNO VEGA CANELAS</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: 32841306</div>
+                <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${datosNegocio.nombre_negocio.toUpperCase()}</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>${datosNegocio.direccion}</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: ${datosNegocio.rtn}</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>PROPIETARIO: ${datosNegocio.propietario.toUpperCase()}</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: ${datosNegocio.celular}</div>
                 
                 <div style='border-top:2px solid #000; border-bottom:2px solid #000; padding:6px 0; margin-bottom:10px;'>
                   <div style='text-align:center; font-size:16px; font-weight:700;'>RECIBO DE VENTA</div>
@@ -1158,7 +1162,7 @@ export default function PuntoDeVentaView({
                 const img = new Image();
                 img.onload = () => resolve(true);
                 img.onerror = () => resolve(false); // Continuar aunque falle
-                img.src = "/favicon.ico";
+                img.src = datosNegocio.logo_url || "/favicon.ico";
                 // Timeout de seguridad de 2 segundos
                 setTimeout(() => resolve(false), 2000);
               });
@@ -2305,16 +2309,15 @@ export default function PuntoDeVentaView({
                             }px; background:#fff;'>
                           <!-- Logo -->
                           <div style='text-align:center; margin-bottom:12px;'>
-                            <img src='/favicon.ico' alt='${NOMBRE_NEGOCIO}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
+                            <img src='${datosNegocio.logo_url || '/favicon.ico'}' alt='${datosNegocio.nombre_negocio}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
                           </div>
                           
                           <!-- Información del Negocio -->
-                          <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${NOMBRE_NEGOCIO_UPPER}</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>ISLAS DE LA BAHÍA, SANDY BAY</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>BO. LA UVA</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: 18071993019392</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>PROPIETARIO: CESAR BENIGNO VEGA CANELAS</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: 32841306</div>
+                          <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${datosNegocio.nombre_negocio.toUpperCase()}</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>${datosNegocio.direccion}</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: ${datosNegocio.rtn}</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>PROPIETARIO: ${datosNegocio.propietario.toUpperCase()}</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: ${datosNegocio.celular}</div>
                           
                           <div style='border-top:2px solid #000; border-bottom:2px solid #000; padding:6px 0; margin-bottom:10px;'>
                             <div style='text-align:center; font-size:16px; font-weight:700;'>RECIBO DE VENTA</div>
@@ -2428,7 +2431,7 @@ export default function PuntoDeVentaView({
                                 const img = new Image();
                                 img.onload = () => resolve(true);
                                 img.onerror = () => resolve(false);
-                                img.src = "/favicon.ico";
+                                img.src = datosNegocio.logo_url || "/favicon.ico";
                                 setTimeout(() => resolve(false), 2000);
                               });
                             };

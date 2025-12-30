@@ -2,12 +2,15 @@ import { useState } from "react";
 import CajaOperadaView from "./CajaOperadaView";
 import { supabase } from "./supabaseClient";
 import { getLocalDayRange } from "./utils/fechas";
+import { getBackgroundStyle } from "./assets/images";
+import { useDatosNegocio } from "./useDatosNegocio";
 
 interface LoginProps {
   onLogin: (user: any) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
+  const { datos: datosNegocio } = useDatosNegocio();
   const [codigo, setCodigo] = useState("");
   const [clave, setClave] = useState("");
   const [error, setError] = useState("");
@@ -103,6 +106,12 @@ export default function Login({ onLogin }: LoginProps) {
       />
     );
   }
+  
+  // Usar logo del negocio como fondo, o fondo por defecto
+  const backgroundStyle = datosNegocio.logo_url 
+    ? `url(${datosNegocio.logo_url}) center/cover no-repeat`
+    : getBackgroundStyle();
+    
   return (
     <div
       style={{
@@ -114,8 +123,7 @@ export default function Login({ onLogin }: LoginProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background:
-          "url(https://i.imgur.com/UiSIq00.jpeg) center/cover no-repeat",
+        background: backgroundStyle,
         zIndex: 9999,
       }}
     >
@@ -127,8 +135,7 @@ export default function Login({ onLogin }: LoginProps) {
             left: 0,
             width: "100vw",
             height: "100vh",
-            background:
-              "url(https://i.imgur.com/UiSIq00.jpeg) center/cover no-repeat",
+            background: backgroundStyle,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -147,17 +154,37 @@ export default function Login({ onLogin }: LoginProps) {
               gap: 24,
             }}
           >
-            <img
-              src="https://i.imgur.com/UiSIq00.jpeg"
-              alt="Logo"
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: "50%",
-                marginBottom: 16,
-                boxShadow: "0 2px 8px #1976d233",
-              }}
-            />
+            {datosNegocio.logo_url ? (
+              <img
+                src={datosNegocio.logo_url}
+                alt="Logo"
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: "50%",
+                  marginBottom: 16,
+                  boxShadow: "0 2px 8px #1976d233",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #667eea, #764ba2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "3rem",
+                  marginBottom: 16,
+                  boxShadow: "0 2px 8px #1976d233",
+                }}
+              >
+                🏪
+              </div>
+            )}
             <div
               style={{
                 fontSize: 28,

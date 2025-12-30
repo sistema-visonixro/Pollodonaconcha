@@ -1,4 +1,5 @@
 // import React from "react";
+import { getBackgroundStyle } from "./assets/images";
 
 export default function CajaOperadaView({
   onCerrarSesion,
@@ -16,8 +17,7 @@ export default function CajaOperadaView({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background:
-          "url(https://i.imgur.com/UiSIq00.jpeg) center/cover no-repeat",
+        background: getBackgroundStyle(),
         zIndex: 9999,
       }}
     >

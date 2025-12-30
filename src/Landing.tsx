@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { BACKGROUND_IMAGE } from "./assets/images";
 
 interface LandingProps {
   onFinish: () => void;
@@ -19,7 +20,7 @@ export default function Landing({ onFinish }: LandingProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: `url('https://i.imgur.com/4M9UCRM.jpeg') no-repeat center center fixed`,
+        background: `url('${BACKGROUND_IMAGE}') no-repeat center center fixed`,
         backgroundSize: "cover",
       }}
     >

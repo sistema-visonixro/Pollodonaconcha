@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 // Imagen de fondo personalizada
 import { supabase } from "./supabaseClient";
+import { useDatosNegocio } from "./useDatosNegocio";
 
 export default function ResultadosCajaView() {
+  const { datos: datosNegocio } = useDatosNegocio();
   const [cierres, setCierres] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [clave, setClave] = useState("");
@@ -110,19 +112,37 @@ export default function ResultadosCajaView() {
             marginBottom: 8,
           }}
         >
-          <img
-            src="https://i.imgur.com/UiSIq00.jpeg"
-            alt="Logo"
-            style={{
-              width: "clamp(120px, 30vw, 205px)",
-              height: "clamp(120px, 28vw, 200px)",
-              borderRadius: "50%",
-              objectFit: "cover",
-              boxShadow: "0 2px 8px #1976d222",
-              background: "#fff",
-              transition: "width 0.3s, height 0.3s",
-            }}
-          />
+          {datosNegocio.logo_url ? (
+            <img
+              src={datosNegocio.logo_url}
+              alt="Logo"
+              style={{
+                width: "clamp(120px, 30vw, 205px)",
+                height: "clamp(120px, 28vw, 200px)",
+                borderRadius: "50%",
+                objectFit: "cover",
+                boxShadow: "0 2px 8px #1976d222",
+                background: "#fff",
+                transition: "width 0.3s, height 0.3s",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "clamp(120px, 30vw, 205px)",
+                height: "clamp(120px, 28vw, 200px)",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #667eea, #764ba2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "4rem",
+                boxShadow: "0 2px 8px #1976d222",
+              }}
+            >
+              🏪
+            </div>
+          )}
         </div>
         <h2
           style={{
