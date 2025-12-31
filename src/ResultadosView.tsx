@@ -328,15 +328,19 @@ export default function ResultadosView({
       const tipos = ["Efectivo", "Transferencia", "Tarjeta"];
       tipos.forEach((t) => {
         const m = Number(pagosPorTipo[t] || 0);
-        const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
-        html += `<tr><td>${t}</td><td>L ${mFmt}</td></tr>`;
+        if (m > 0) {
+          const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+          html += `<tr><td>${t}</td><td>L ${mFmt}</td></tr>`;
+        }
       });
       // Incluir otros tipos si existen
       Object.keys(pagosPorTipo).forEach((t) => {
         if (!tipos.includes(t)) {
           const m = Number(pagosPorTipo[t] || 0);
-          const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
-          html += `<tr><td>${t}</td><td>L ${mFmt}</td></tr>`;
+          if (m > 0) {
+            const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+            html += `<tr><td>${t}</td><td>L ${mFmt}</td></tr>`;
+          }
         }
       });
       // Total de pagos en el resumen
@@ -418,36 +422,31 @@ export default function ResultadosView({
       }
 
       // Tabla de pagos
-      html += `<div class="section"><h2>Tabla de Pagos</h2>`;
+      html += `<div class="section"><h2>Tabla de Pagos (Detalle)</h2>`;
       if (pagosData.length === 0)
         html += `<p>No hay pagos en el rango seleccionado.</p>`;
       else {
-        // Mostrar pagos agrupados por factura (no repetir facturas)
-        html += `<table><thead><tr><th>Fecha</th><th>Tipo(s)</th><th>Factura</th><th>Cajero</th><th>Monto</th></tr></thead><tbody>`;
-        pagosUnicosArray.forEach((p) => {
-          const fecha = p.fecha
-            ? p.fecha.replace
-              ? p.fecha.replace("T", " ").slice(0, 19)
-              : p.fecha
+        // Mostrar todos los pagos con detalles
+        html += `<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Factura</th><th>Banco</th><th>Tarjeta</th><th>Ref.</th><th>Monto</th></tr></thead><tbody>`;
+        pagosData.forEach((p: any) => {
+          const fecha = p.fecha_hora
+            ? p.fecha_hora.replace
+              ? p.fecha_hora.replace("T", " ").slice(0, 19)
+              : p.fecha_hora
             : "";
-          const tiposStr = Array.from(p.tipos).filter(Boolean).join(", ");
-          const cajero = p.cajero || "";
-          html += `<tr><td>${fecha}</td><td>${tiposStr}</td><td>${
-            p.factura
-          }</td><td>${cajero}</td><td>L ${Number(p.monto || 0).toFixed(
+          const tipo = p.tipo || "";
+          const factura = p.factura_venta || p.factura || "";
+          const banco = p.banco || "-";
+          const tarjeta = p.tarjeta ? `****${p.tarjeta}` : "-";
+          const referencia = p.referencia || "-";
+          html += `<tr><td>${fecha}</td><td>${tipo}</td><td>${factura}</td><td style="font-size:11px;">${banco}</td><td>${tarjeta}</td><td style="font-size:11px;">${referencia}</td><td>L ${Number(p.monto || 0).toFixed(
             2
           )}</td></tr>`;
         });
-        // Fila de totales al final de la tabla de pagos (usar total por factura única)
-        html += `<tr><th colspan="4" style="text-align:right">Total Pagos</th><th>L ${totalPagosUnique.toFixed(
+        // Fila de totales al final de la tabla de pagos
+        html += `<tr><th colspan="6" style="text-align:right">Total Pagos</th><th>L ${totalPagosRaw.toFixed(
           2
         )}</th></tr>`;
-        // si difiere, mostrar total raw también
-        if (totalPagosRaw !== totalPagosUnique) {
-          html += `<tr><th colspan="4" style="text-align:right">Total Pagos (raw)</th><th>L ${totalPagosRaw.toFixed(
-            2
-          )}</th></tr>`;
-        }
         html += `</tbody></table>`;
       }
       html += `</div>`;

@@ -110,8 +110,8 @@ export default function RegistroCierreView({
         .lte("fecha_hora", hasta);
 
     const pagosEfectivoQuery = cajeroFilterIsId
-      ? pagosBase().eq("tipo", "Efectivo").eq("cajero_id", usuarioActual.id)
-      : pagosBase().eq("tipo", "Efectivo").eq("cajero", usuarioActual?.nombre);
+      ? pagosBase().eq("tipo", "efectivo").eq("cajero_id", usuarioActual.id)
+      : pagosBase().eq("tipo", "efectivo").eq("cajero", usuarioActual?.nombre);
 
     const { data: pagosEfectivo } = await pagosEfectivoQuery;
     console.debug(
@@ -152,8 +152,8 @@ export default function RegistroCierreView({
     console.debug("efectivoDia neto (efectivo - gastos):", efectivoDiaNet);
 
     const pagosTarjetaQuery = cajeroFilterIsId
-      ? pagosBase().eq("tipo", "Tarjeta").eq("cajero_id", usuarioActual.id)
-      : pagosBase().eq("tipo", "Tarjeta").eq("cajero", usuarioActual?.nombre);
+      ? pagosBase().eq("tipo", "tarjeta").eq("cajero_id", usuarioActual.id)
+      : pagosBase().eq("tipo", "tarjeta").eq("cajero", usuarioActual?.nombre);
     const { data: pagosTarjeta } = await pagosTarjetaQuery;
     console.debug(
       "pagosTarjeta count:",
@@ -168,10 +168,10 @@ export default function RegistroCierreView({
 
     const pagosTransQuery = cajeroFilterIsId
       ? pagosBase()
-          .eq("tipo", "Transferencia")
+          .eq("tipo", "transferencia")
           .eq("cajero_id", usuarioActual.id)
       : pagosBase()
-          .eq("tipo", "Transferencia")
+          .eq("tipo", "transferencia")
           .eq("cajero", usuarioActual?.nombre);
     const { data: pagosTrans } = await pagosTransQuery;
     console.debug(

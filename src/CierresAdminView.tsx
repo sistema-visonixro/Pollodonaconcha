@@ -144,21 +144,21 @@ export default function CierresAdminView({
       supabase
         .from("pagos")
         .select("monto, fecha_hora")
-        .eq("tipo", "Efectivo")
+        .eq("tipo", "efectivo")
         .eq("cajero", cajero)
         .gte("fecha_hora", desde)
         .lte("fecha_hora", hasta),
       supabase
         .from("pagos")
         .select("monto, fecha_hora")
-        .eq("tipo", "Tarjeta")
+        .eq("tipo", "tarjeta")
         .eq("cajero", cajero)
         .gte("fecha_hora", desde)
         .lte("fecha_hora", hasta),
       supabase
         .from("pagos")
         .select("monto, fecha_hora")
-        .eq("tipo", "Transferencia")
+        .eq("tipo", "transferencia")
         .eq("cajero", cajero)
         .gte("fecha_hora", desde)
         .lte("fecha_hora", hasta),

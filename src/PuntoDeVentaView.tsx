@@ -61,6 +61,7 @@ export default function PuntoDeVentaView({
     efectivo: number;
     tarjeta: number;
     transferencia: number;
+    dolares: number;
     gastos: number;
   } | null>(null);
 
@@ -70,30 +71,40 @@ export default function PuntoDeVentaView({
     setResumenLoading(true);
     try {
       const { start, end, day } = getLocalDayRange();
+      console.log("Resumen de caja - Rango:", { start, end, day, cajeroId: usuarioActual?.id });
+      
       const [
-        { data: pagosEfectivo },
-        { data: pagosTarjeta },
-        { data: pagosTrans },
+        { data: pagosEfectivo, error: errorEfectivo },
+        { data: pagosTarjeta, error: errorTarjeta },
+        { data: pagosTrans, error: errorTrans },
+        { data: pagosDolares, error: errorDolares },
         { data: gastosDia },
       ] = await Promise.all([
         supabase
           .from("pagos")
-          .select("monto")
-          .eq("tipo", "Efectivo")
+          .select("monto, tipo, cajero_id, fecha_hora")
+          .eq("tipo", "efectivo")
           .eq("cajero_id", usuarioActual?.id)
           .gte("fecha_hora", start)
           .lte("fecha_hora", end),
         supabase
           .from("pagos")
-          .select("monto")
-          .eq("tipo", "Tarjeta")
+          .select("monto, tipo, cajero_id, fecha_hora")
+          .eq("tipo", "tarjeta")
           .eq("cajero_id", usuarioActual?.id)
           .gte("fecha_hora", start)
           .lte("fecha_hora", end),
         supabase
           .from("pagos")
-          .select("monto")
-          .eq("tipo", "Transferencia")
+          .select("monto, tipo, cajero_id, fecha_hora")
+          .eq("tipo", "transferencia")
+          .eq("cajero_id", usuarioActual?.id)
+          .gte("fecha_hora", start)
+          .lte("fecha_hora", end),
+        supabase
+          .from("pagos")
+          .select("monto, tipo, cajero_id, fecha_hora, usd_monto")
+          .eq("tipo", "dolares")
           .eq("cajero_id", usuarioActual?.id)
           .gte("fecha_hora", start)
           .lte("fecha_hora", end),
@@ -120,6 +131,13 @@ export default function PuntoDeVentaView({
         })(),
       ]);
 
+      console.log("Resultados consultas:", {
+        efectivo: { data: pagosEfectivo, error: errorEfectivo, count: pagosEfectivo?.length },
+        tarjeta: { data: pagosTarjeta, error: errorTarjeta, count: pagosTarjeta?.length },
+        transferencia: { data: pagosTrans, error: errorTrans, count: pagosTrans?.length },
+        dolares: { data: pagosDolares, error: errorDolares, count: pagosDolares?.length },
+      });
+
       const efectivoSum = (pagosEfectivo || []).reduce(
         (s: number, p: any) => s + parseFloat(p.monto || 0),
         0
@@ -132,21 +150,34 @@ export default function PuntoDeVentaView({
         (s: number, p: any) => s + parseFloat(p.monto || 0),
         0
       );
+      const dolaresSum = (pagosDolares || []).reduce(
+        (s: number, p: any) => s + parseFloat(p.monto || 0),
+        0
+      );
 
       const gastosSum = (gastosDia || []).reduce(
         (s: number, g: any) => s + parseFloat(g.monto || 0),
         0
       );
 
+      console.log("Sumas calculadas:", {
+        efectivo: efectivoSum,
+        tarjeta: tarjetaSum,
+        transferencia: transSum,
+        dolares: dolaresSum,
+        gastos: gastosSum,
+      });
+
       setResumenData({
         efectivo: efectivoSum,
         tarjeta: tarjetaSum,
         transferencia: transSum,
+        dolares: dolaresSum,
         gastos: gastosSum,
       });
     } catch (err) {
       console.error("Error al obtener resumen de caja:", err);
-      setResumenData({ efectivo: 0, tarjeta: 0, transferencia: 0, gastos: 0 });
+      setResumenData({ efectivo: 0, tarjeta: 0, transferencia: 0, dolares: 0, gastos: 0 });
     } finally {
       setResumenLoading(false);
     }
@@ -210,6 +241,7 @@ export default function PuntoDeVentaView({
   
   const [facturaActual, setFacturaActual] = useState<string>("");
   const [showPagoModal, setShowPagoModal] = useState(false);
+  const [tasaCambio] = useState<number>(25.0); // Tasa de cambio HNL/USD
   const [showClienteModal, setShowClienteModal] = useState(false);
   // Modal para envíos de pedido
   const [showEnvioModal, setShowEnvioModal] = useState(false);
@@ -674,6 +706,9 @@ export default function PuntoDeVentaView({
                   {resumenData.transferencia.toFixed(2)}
                 </div>
                 <div>
+                  <strong>DÓLARES:</strong> L {resumenData.dolares.toFixed(2)}
+                </div>
+                <div>
                   <strong>GASTOS:</strong> {resumenData.gastos.toFixed(2)}
                 </div>
               </div>
@@ -975,11 +1010,50 @@ export default function PuntoDeVentaView({
         onClose={() => {
           setShowPagoModal(false);
         }}
-        factura={facturaActual}
         totalPedido={total}
-        cliente={nombreCliente}
-        factura_venta={facturaActual}
-        onPagoConfirmado={async () => {
+        exchangeRate={tasaCambio}
+        onPagoConfirmado={async (paymentData) => {
+          // Guardar los pagos en la base de datos
+          try {
+            if (paymentData.pagos && paymentData.pagos.length > 0) {
+              const pagosToInsert = paymentData.pagos.map((pago) => ({
+                tipo: pago.tipo,
+                monto: pago.monto,
+                banco: pago.banco || null,
+                tarjeta: pago.tarjeta || null,
+                factura: pago.factura || null,
+                autorizador: pago.autorizador || null,
+                referencia: pago.referencia || null,
+                usd_monto: pago.usd_monto || null,
+                fecha_hora: formatToHondurasLocal(),
+                cajero: usuarioActual?.nombre || "",
+                cajero_id: usuarioActual?.id || null,
+                cliente: nombreCliente,
+                factura_venta: facturaActual,
+                recibido: paymentData.totalPaid,
+                cambio: paymentData.totalPaid - total,
+              }));
+
+              console.log("Insertando pagos:", pagosToInsert);
+
+              const { error: pagoError } = await supabase
+                .from("pagos")
+                .insert(pagosToInsert);
+
+              if (pagoError) {
+                console.error("Error al guardar pagos:", pagoError);
+                alert("Error al registrar los pagos: " + pagoError.message);
+                return;
+              }
+              
+              console.log("Pagos guardados exitosamente");
+            }
+          } catch (err) {
+            console.error("Error al procesar pagos:", err);
+            alert("Error al procesar los pagos");
+            return;
+          }
+
           setShowPagoModal(false);
           setTimeout(async () => {
             // Consultar configuración de comanda y recibo desde Supabase
