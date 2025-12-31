@@ -162,8 +162,8 @@ export default function ResultadosView({
       const desdeInicio = `${desde} 00:00:00`;
       const hastaFin = `${hasta} 23:59:59`;
 
-      // Consultas paralelas
-      const [factRes, gastRes, pagosRes, cierresRes] = await Promise.all([
+      // Consultas paralelas (incluyendo precio_dolar)
+      const [factRes, gastRes, pagosRes, cierresRes, precioDolarRes] = await Promise.all([
         supabase
           .from("facturas")
           .select("*")
@@ -191,7 +191,15 @@ export default function ResultadosView({
           .gte("fecha", desde)
           .lte("fecha", hasta)
           .order("fecha", { ascending: true }),
+        supabase
+          .from("precio_dolar")
+          .select("valor")
+          .eq("id", "singleton")
+          .limit(1)
+          .single(),
       ]);
+
+      const precioDolar = precioDolarRes.data?.valor ? Number(precioDolarRes.data.valor) : 0;
 
       const factData = factRes.data || [];
       const gastData = gastRes.data || [];
@@ -214,13 +222,19 @@ export default function ResultadosView({
       const rentabilidadPercent =
         totalGastos > 0 ? (balanceReporte / totalGastos) * 100 : null;
 
-      // Desglose de pagos
+      // Desglose de pagos (separar dolares USD de Lps)
       const pagosPorTipo: { [k: string]: number } = {};
+      let dolaresUSD = 0;
       pagosData.forEach((p: any) => {
         const tipo = p.tipo || "Desconocido";
+        if (tipo === "dolares") {
+          // Para dólares, acumular el valor en USD desde usd_monto
+          dolaresUSD += parseFloat(p.usd_monto || 0);
+        }
         pagosPorTipo[tipo] =
           (pagosPorTipo[tipo] || 0) + parseFloat(p.monto || 0);
       });
+      const dolaresLps = pagosPorTipo["dolares"] || 0;
 
       // Total de todos los pagos (raw) y cálculo de pagos únicos por factura
       const totalPagosRaw = pagosData.reduce((s: number, p: any) => {
@@ -324,22 +338,34 @@ export default function ResultadosView({
           : "N/A (sin gastos)"
       }</td></tr>`;
 
-      html += `<div class="section"><h2>Pagos</h2><table><thead><tr><th>Tipo</th><th>Monto</th></tr></thead><tbody>`;
-      const tipos = ["Efectivo", "Transferencia", "Tarjeta"];
+      html += `<div class="section"><h2>Pagos</h2>`;
+      if (precioDolar > 0) {
+        html += `<p style="background:#fff9e6;padding:8px;border-radius:4px;font-size:13px;"><b>Tipo de Cambio:</b> L ${precioDolar.toFixed(2)} por $1.00 USD</p>`;
+      }
+      html += `<table><thead><tr><th>Tipo</th><th>Monto</th></tr></thead><tbody>`;
+      const tipos = ["efectivo", "transferencia", "tarjeta"];
       tipos.forEach((t) => {
         const m = Number(pagosPorTipo[t] || 0);
         if (m > 0) {
           const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
-          html += `<tr><td>${t}</td><td>L ${mFmt}</td></tr>`;
+          const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
+          html += `<tr><td>${tLabel}</td><td>L ${mFmt}</td></tr>`;
         }
       });
+      // Dólares: mostrar USD, conversión y Lps
+      if (dolaresUSD > 0) {
+        const dolaresUSDFmt = dolaresUSD.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+        const dolaresLpsFmt = dolaresLps.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+        html += `<tr><td>Dólares</td><td><b>$ ${dolaresUSDFmt}</b> <span style="color:#666;font-size:12px;">(L ${dolaresLpsFmt})</span></td></tr>`;
+      }
       // Incluir otros tipos si existen
       Object.keys(pagosPorTipo).forEach((t) => {
-        if (!tipos.includes(t)) {
+        if (![...tipos, "dolares"].includes(t)) {
           const m = Number(pagosPorTipo[t] || 0);
           if (m > 0) {
             const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
-            html += `<tr><td>${t}</td><td>L ${mFmt}</td></tr>`;
+            const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
+            html += `<tr><td>${tLabel}</td><td>L ${mFmt}</td></tr>`;
           }
         }
       });
@@ -439,9 +465,15 @@ export default function ResultadosView({
           const banco = p.banco || "-";
           const tarjeta = p.tarjeta ? `****${p.tarjeta}` : "-";
           const referencia = p.referencia || "-";
-          html += `<tr><td>${fecha}</td><td>${tipo}</td><td>${factura}</td><td style="font-size:11px;">${banco}</td><td>${tarjeta}</td><td style="font-size:11px;">${referencia}</td><td>L ${Number(p.monto || 0).toFixed(
-            2
-          )}</td></tr>`;
+          let montoDisplay = "";
+          if (tipo === "dolares" && p.usd_monto) {
+            const usd = Number(p.usd_monto || 0).toFixed(2);
+            const lps = Number(p.monto || 0).toFixed(2);
+            montoDisplay = `<b>$ ${usd}</b> <span style="color:#666;font-size:11px;">(L ${lps})</span>`;
+          } else {
+            montoDisplay = `L ${Number(p.monto || 0).toFixed(2)}`;
+          }
+          html += `<tr><td>${fecha}</td><td>${tipo}</td><td>${factura}</td><td style="font-size:11px;">${banco}</td><td>${tarjeta}</td><td style="font-size:11px;">${referencia}</td><td>${montoDisplay}</td></tr>`;
         });
         // Fila de totales al final de la tabla de pagos
         html += `<tr><th colspan="6" style="text-align:right">Total Pagos</th><th>L ${totalPagosRaw.toFixed(

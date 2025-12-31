@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import PrecioDolarModal from "./PrecioDolarModal";
 
 interface CaiFactura {
   id: string;
@@ -35,6 +36,7 @@ export default function CaiFacturasView({ onBack }: CaiFacturasViewProps) {
   const [form, setForm] = useState<Partial<CaiFactura>>({});
   const [editId, setEditId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showPrecioModal, setShowPrecioModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -514,9 +516,18 @@ export default function CaiFacturasView({ onBack }: CaiFacturasViewProps) {
           )}
           <h1 className="page-title">🧾 CAI y Facturación</h1>
         </div>
-        <button className="btn-primary" onClick={handleNew}>
-          ➕ Nuevo CAI
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            className="btn-primary"
+            onClick={() => setShowPrecioModal(true)}
+            style={{ background: "#10b981", border: "none" }}
+          >
+            Precio del dólar
+          </button>
+          <button className="btn-primary" onClick={handleNew}>
+            ➕ Nuevo CAI
+          </button>
+        </div>
       </header>
 
       <main className="main-content">
@@ -757,6 +768,10 @@ export default function CaiFacturasView({ onBack }: CaiFacturasViewProps) {
             </div>
           </div>
         )}
+        <PrecioDolarModal
+          open={showPrecioModal}
+          onClose={() => setShowPrecioModal(false)}
+        />
       </main>
     </div>
   );

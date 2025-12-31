@@ -500,17 +500,13 @@ export default function PaymentModal({
               {tipo === "dolares" && (
                 <div style={{ marginBottom: 8 }}>
                   <label style={{ display: "block", marginBottom: 6 }}>
-                    Tipo de cambio (Lps por $)
+                    Tipo de cambio (Lps :   {exchangeRate.toFixed(2)} por $)  
                   </label>
                   <div
                     style={{ display: "flex", gap: 8, alignItems: "center" }}
                   >
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>
-                      {exchangeRate.toFixed(2)} L
-                    </div>
-                    <div style={{ fontSize: 13, color: "#666" }}>
-                      &nbsp;(Editable en el encabezado de Punto de Ventas)
-                    </div>
+                   
+                    
                   </div>
                 </div>
               )}

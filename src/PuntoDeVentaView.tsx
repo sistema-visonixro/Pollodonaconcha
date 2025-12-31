@@ -62,6 +62,9 @@ export default function PuntoDeVentaView({
     tarjeta: number;
     transferencia: number;
     dolares: number;
+    dolares_usd?: number;
+    dolares_convertidos?: number;
+    tasa_dolar?: number;
     gastos: number;
   } | null>(null);
 
@@ -71,8 +74,13 @@ export default function PuntoDeVentaView({
     setResumenLoading(true);
     try {
       const { start, end, day } = getLocalDayRange();
-      console.log("Resumen de caja - Rango:", { start, end, day, cajeroId: usuarioActual?.id });
-      
+      console.log("Resumen de caja - Rango:", {
+        start,
+        end,
+        day,
+        cajeroId: usuarioActual?.id,
+      });
+
       const [
         { data: pagosEfectivo, error: errorEfectivo },
         { data: pagosTarjeta, error: errorTarjeta },
@@ -132,10 +140,26 @@ export default function PuntoDeVentaView({
       ]);
 
       console.log("Resultados consultas:", {
-        efectivo: { data: pagosEfectivo, error: errorEfectivo, count: pagosEfectivo?.length },
-        tarjeta: { data: pagosTarjeta, error: errorTarjeta, count: pagosTarjeta?.length },
-        transferencia: { data: pagosTrans, error: errorTrans, count: pagosTrans?.length },
-        dolares: { data: pagosDolares, error: errorDolares, count: pagosDolares?.length },
+        efectivo: {
+          data: pagosEfectivo,
+          error: errorEfectivo,
+          count: pagosEfectivo?.length,
+        },
+        tarjeta: {
+          data: pagosTarjeta,
+          error: errorTarjeta,
+          count: pagosTarjeta?.length,
+        },
+        transferencia: {
+          data: pagosTrans,
+          error: errorTrans,
+          count: pagosTrans?.length,
+        },
+        dolares: {
+          data: pagosDolares,
+          error: errorDolares,
+          count: pagosDolares?.length,
+        },
       });
 
       const efectivoSum = (pagosEfectivo || []).reduce(
@@ -155,6 +179,29 @@ export default function PuntoDeVentaView({
         0
       );
 
+      const dolaresSumUsd = (pagosDolares || []).reduce(
+        (s: number, p: any) => s + parseFloat(p.usd_monto || 0),
+        0
+      );
+
+      // obtener tasa del dolar (singleton)
+      let tasa = 0;
+      try {
+        const { data: tasaData } = await supabase
+          .from("precio_dolar")
+          .select("valor")
+          .eq("id", "singleton")
+          .limit(1)
+          .single();
+        if (tasaData && typeof tasaData.valor !== "undefined") {
+          tasa = Number(tasaData.valor) || 0;
+        }
+      } catch (e) {
+        console.warn("No se pudo obtener tasa de precio_dolar:", e);
+      }
+
+      const dolaresConvertidos = Number((dolaresSumUsd * tasa).toFixed(2));
+
       const gastosSum = (gastosDia || []).reduce(
         (s: number, g: any) => s + parseFloat(g.monto || 0),
         0
@@ -173,11 +220,20 @@ export default function PuntoDeVentaView({
         tarjeta: tarjetaSum,
         transferencia: transSum,
         dolares: dolaresSum,
+        dolares_usd: dolaresSumUsd,
+        dolares_convertidos: dolaresConvertidos,
+        tasa_dolar: tasa,
         gastos: gastosSum,
       });
     } catch (err) {
       console.error("Error al obtener resumen de caja:", err);
-      setResumenData({ efectivo: 0, tarjeta: 0, transferencia: 0, dolares: 0, gastos: 0 });
+      setResumenData({
+        efectivo: 0,
+        tarjeta: 0,
+        transferencia: 0,
+        dolares: 0,
+        gastos: 0,
+      });
     } finally {
       setResumenLoading(false);
     }
@@ -235,13 +291,13 @@ export default function PuntoDeVentaView({
         handler as EventListener
       );
   }, []);
-  
+
   // Cargar datos del negocio
   const { datos: datosNegocio } = useDatosNegocio();
-  
+
   const [facturaActual, setFacturaActual] = useState<string>("");
   const [showPagoModal, setShowPagoModal] = useState(false);
-  const [tasaCambio] = useState<number>(25.0); // Tasa de cambio HNL/USD
+  const [tasaCambio, setTasaCambio] = useState<number>(25.0); // Tasa de cambio HNL/USD
   const [showClienteModal, setShowClienteModal] = useState(false);
   // Modal para envíos de pedido
   const [showEnvioModal, setShowEnvioModal] = useState(false);
@@ -255,6 +311,30 @@ export default function PuntoDeVentaView({
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [lastEnvioSaved, setLastEnvioSaved] = useState<any>(null);
   const [showNoConnectionModal, setShowNoConnectionModal] = useState(false);
+
+  useEffect(() => {
+    if (!showPagoModal) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("precio_dolar")
+          .select("valor")
+          .eq("id", "singleton")
+          .limit(1)
+          .single();
+        if (!mounted) return;
+        if (data && typeof data.valor !== "undefined") {
+          setTasaCambio(Number(data.valor));
+        }
+      } catch (e) {
+        console.warn("No se pudo cargar tasa de cambio:", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [showPagoModal]);
   // Modal para registrar gasto
   const [showRegistrarGasto, setShowRegistrarGasto] = useState(false);
   // Modal para listar pedidos del cajero
@@ -301,7 +381,9 @@ export default function PuntoDeVentaView({
   }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"comida" | "bebida" | "complemento">("comida");
+  const [activeTab, setActiveTab] = useState<
+    "comida" | "bebida" | "complemento"
+  >("comida");
 
   // Obtener datos de CAI y factura actual
   useEffect(() => {
@@ -706,7 +788,18 @@ export default function PuntoDeVentaView({
                   {resumenData.transferencia.toFixed(2)}
                 </div>
                 <div>
-                  <strong>DÓLARES:</strong> L {resumenData.dolares.toFixed(2)}
+                  <strong>DÓLARES:</strong>{" "}
+                  {typeof resumenData.dolares_usd !== "undefined" ? (
+                    <>
+                      ({resumenData.dolares_usd.toFixed(2)} $) 
+                      
+                      : Lps{" "}
+                      {resumenData.dolares_convertidos?.toFixed(2) ??
+                        resumenData.dolares.toFixed(2)}
+                    </>
+                  ) : (
+                    <>L {resumenData.dolares.toFixed(2)}</>
+                  )}
                 </div>
                 <div>
                   <strong>GASTOS:</strong> {resumenData.gastos.toFixed(2)}
@@ -1016,6 +1109,8 @@ export default function PuntoDeVentaView({
           // Guardar los pagos en la base de datos
           try {
             if (paymentData.pagos && paymentData.pagos.length > 0) {
+              const cambioValue = paymentData.totalPaid - total;
+              
               const pagosToInsert = paymentData.pagos.map((pago) => ({
                 tipo: pago.tipo,
                 monto: pago.monto,
@@ -1031,8 +1126,29 @@ export default function PuntoDeVentaView({
                 cliente: nombreCliente,
                 factura_venta: facturaActual,
                 recibido: paymentData.totalPaid,
-                cambio: paymentData.totalPaid - total,
+                cambio: cambioValue,
               }));
+
+              // Si hay cambio positivo, registrar salida de efectivo
+              if (cambioValue > 0) {
+                pagosToInsert.push({
+                  tipo: "efectivo",
+                  monto: -cambioValue, // Monto negativo indica salida
+                  banco: null,
+                  tarjeta: null,
+                  factura: null,
+                  autorizador: null,
+                  referencia: "CAMBIO",
+                  usd_monto: null,
+                  fecha_hora: formatToHondurasLocal(),
+                  cajero: usuarioActual?.nombre || "",
+                  cajero_id: usuarioActual?.id || null,
+                  cliente: nombreCliente,
+                  factura_venta: facturaActual,
+                  recibido: paymentData.totalPaid,
+                  cambio: cambioValue,
+                });
+              }
 
               console.log("Insertando pagos:", pagosToInsert);
 
@@ -1045,7 +1161,7 @@ export default function PuntoDeVentaView({
                 alert("Error al registrar los pagos: " + pagoError.message);
                 return;
               }
-              
+
               console.log("Pagos guardados exitosamente");
             }
           } catch (err) {
@@ -1126,15 +1242,23 @@ export default function PuntoDeVentaView({
             }px; background:#fff;'>
                 <!-- Logo -->
                 <div style='text-align:center; margin-bottom:12px;'>
-                  <img src='${datosNegocio.logo_url || '/favicon.ico'}' alt='${datosNegocio.nombre_negocio}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
+                  <img src='${datosNegocio.logo_url || "/favicon.ico"}' alt='${
+              datosNegocio.nombre_negocio
+            }' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
                 </div>
                 
                 <!-- Información del Negocio -->
                 <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${datosNegocio.nombre_negocio.toUpperCase()}</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>${datosNegocio.direccion}</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: ${datosNegocio.rtn}</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>${
+                  datosNegocio.direccion
+                }</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: ${
+                  datosNegocio.rtn
+                }</div>
                 <div style='text-align:center; font-size:14px; margin-bottom:3px;'>PROPIETARIO: ${datosNegocio.propietario.toUpperCase()}</div>
-                <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: ${datosNegocio.celular}</div>
+                <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: ${
+                  datosNegocio.celular
+                }</div>
                 
                 <div style='border-top:2px solid #000; border-bottom:2px solid #000; padding:6px 0; margin-bottom:10px;'>
                   <div style='text-align:center; font-size:16px; font-weight:700;'>RECIBO DE VENTA</div>
@@ -1510,7 +1634,12 @@ export default function PuntoDeVentaView({
                     style={{
                       fontWeight: 800,
                       fontSize: 22,
-                      color: activeTab === "comida" ? "#388e3c" : activeTab === "bebida" ? "#1976d2" : "#9c27b0",
+                      color:
+                        activeTab === "comida"
+                          ? "#388e3c"
+                          : activeTab === "bebida"
+                          ? "#1976d2"
+                          : "#9c27b0",
                       textAlign: "center",
                       marginBottom: 8,
                     }}
@@ -2401,15 +2530,25 @@ export default function PuntoDeVentaView({
                             }px; background:#fff;'>
                           <!-- Logo -->
                           <div style='text-align:center; margin-bottom:12px;'>
-                            <img src='${datosNegocio.logo_url || '/favicon.ico'}' alt='${datosNegocio.nombre_negocio}' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
+                            <img src='${
+                              datosNegocio.logo_url || "/favicon.ico"
+                            }' alt='${
+                              datosNegocio.nombre_negocio
+                            }' style='width:320px; height:320px;' onload='window.imageLoaded = true;' />
                           </div>
                           
                           <!-- Información del Negocio -->
                           <div style='text-align:center; font-size:18px; font-weight:700; margin-bottom:6px;'>${datosNegocio.nombre_negocio.toUpperCase()}</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>${datosNegocio.direccion}</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: ${datosNegocio.rtn}</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>${
+                            datosNegocio.direccion
+                          }</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:3px;'>RTN: ${
+                            datosNegocio.rtn
+                          }</div>
                           <div style='text-align:center; font-size:14px; margin-bottom:3px;'>PROPIETARIO: ${datosNegocio.propietario.toUpperCase()}</div>
-                          <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: ${datosNegocio.celular}</div>
+                          <div style='text-align:center; font-size:14px; margin-bottom:10px;'>TEL: ${
+                            datosNegocio.celular
+                          }</div>
                           
                           <div style='border-top:2px solid #000; border-bottom:2px solid #000; padding:6px 0; margin-bottom:10px;'>
                             <div style='text-align:center; font-size:16px; font-weight:700;'>RECIBO DE VENTA</div>
@@ -2523,7 +2662,8 @@ export default function PuntoDeVentaView({
                                 const img = new Image();
                                 img.onload = () => resolve(true);
                                 img.onerror = () => resolve(false);
-                                img.src = datosNegocio.logo_url || "/favicon.ico";
+                                img.src =
+                                  datosNegocio.logo_url || "/favicon.ico";
                                 setTimeout(() => resolve(false), 2000);
                               });
                             };

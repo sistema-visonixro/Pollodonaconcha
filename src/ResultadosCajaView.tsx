@@ -241,19 +241,24 @@ export default function ResultadosCajaView() {
                     const efectivoDiff = ((parseFloat(cierre.efectivo_registrado) || 0) - (parseFloat(cierre.efectivo_dia) || 0)).toFixed(2);
                     const tarjetaDiff = ((parseFloat(cierre.monto_tarjeta_registrado) || 0) - (parseFloat(cierre.monto_tarjeta_dia) || 0)).toFixed(2);
                     const transDiff = ((parseFloat(cierre.transferencias_registradas) || 0) - (parseFloat(cierre.transferencias_dia) || 0)).toFixed(2);
+                    const dolaresDiff = ((parseFloat(cierre.dolares_registrado) || 0) - (parseFloat(cierre.dolares_dia) || 0)).toFixed(2);
                     return (
-                      <div key={i} style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between' }}>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010' }}>
+                      <div key={i} style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: '#1976d2' }}>EFECTIVO</div>
                           <div style={{ fontSize: 20, fontWeight: 900, color: efectivoDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>L {efectivoDiff}</div>
                         </div>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010' }}>
+                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: '#1976d2' }}>TARJETA</div>
                           <div style={{ fontSize: 20, fontWeight: 900, color: tarjetaDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>L {tarjetaDiff}</div>
                         </div>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010' }}>
+                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: '#1976d2' }}>TRANSFERENCIA</div>
                           <div style={{ fontSize: 20, fontWeight: 900, color: transDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>L {transDiff}</div>
+                        </div>
+                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#f57c00' }}>DÓLARES</div>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: dolaresDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>$ {dolaresDiff}</div>
                         </div>
                       </div>
                     );
@@ -290,6 +295,8 @@ export default function ResultadosCajaView() {
                             <tr><td><b>Monto Tarjeta Día:</b></td><td>{cierre.monto_tarjeta_dia}</td></tr>
                             <tr><td><b>Transferencias Registradas:</b></td><td>{cierre.transferencias_registradas}</td></tr>
                             <tr><td><b>Transferencias Día:</b></td><td>{cierre.transferencias_dia}</td></tr>
+                            <tr><td><b>Dólares Registrado (USD):</b></td><td>{cierre.dolares_registrado || 0}</td></tr>
+                            <tr><td><b>Dólares Día (USD):</b></td><td>{cierre.dolares_dia || 0}</td></tr>
                             <tr><td><b>Diferencia:</b></td><td>{cierre.diferencia}</td></tr>
                             <tr><td><b>Observación:</b></td><td>{cierre.observacion || '-'}</td></tr>
                           </tbody>
@@ -299,6 +306,7 @@ export default function ResultadosCajaView() {
                         <div><b>EFECTIVO:</b> {((parseFloat(cierre.efectivo_registrado) || 0) - (parseFloat(cierre.efectivo_dia) || 0)).toFixed(2)}</div>
                         <div><b>TARJETA:</b> {((parseFloat(cierre.monto_tarjeta_registrado) || 0) - (parseFloat(cierre.monto_tarjeta_dia) || 0)).toFixed(2)}</div>
                         <div><b>TRANSFERENCIA:</b> {((parseFloat(cierre.transferencias_registradas) || 0) - (parseFloat(cierre.transferencias_dia) || 0)).toFixed(2)}</div>
+                        <div><b>DÓLARES (USD):</b> {((parseFloat(cierre.dolares_registrado) || 0) - (parseFloat(cierre.dolares_dia) || 0)).toFixed(2)}</div>
                         {/* Si existe diferencia aquí mostramos una indicación; la validación/guardado
                             se realiza en el bloque de 'TOTAL' más abajo para evitar duplicados del formulario. */}
                         {parseFloat(cierre.diferencia) !== 0 && (
@@ -329,6 +337,10 @@ export default function ResultadosCajaView() {
                           parseFloat(cierre.transferencias_registradas) || 0;
                         const transferenciasDia =
                           parseFloat(cierre.transferencias_dia) || 0;
+                        const dolaresRegistrado =
+                          parseFloat(cierre.dolares_registrado) || 0;
+                        const dolaresDia =
+                          parseFloat(cierre.dolares_dia) || 0;
                         const diferenciaFondoFijo =
                           fondoFijoRegistrado - fondoFijo;
                         const diferenciaEfectivo =
@@ -337,11 +349,14 @@ export default function ResultadosCajaView() {
                           montoTarjetaRegistrado - montoTarjetaDia;
                         const diferenciaTransferencia =
                           transferenciasRegistradas - transferenciasDia;
+                        const diferenciaDolares =
+                          dolaresRegistrado - dolaresDia;
                         total +=
                           diferenciaFondoFijo +
                           diferenciaEfectivo +
                           diferenciaTarjeta +
-                          diferenciaTransferencia;
+                          diferenciaTransferencia +
+                          diferenciaDolares;
                       });
                       return total.toFixed(2);
                     })()}
@@ -361,16 +376,23 @@ export default function ResultadosCajaView() {
                         parseFloat(cierre.transferencias_registradas) || 0;
                       const transferenciasDia =
                         parseFloat(cierre.transferencias_dia) || 0;
+                      const dolaresRegistrado =
+                        parseFloat(cierre.dolares_registrado) || 0;
+                      const dolaresDia =
+                        parseFloat(cierre.dolares_dia) || 0;
                       const diferenciaEfectivo =
                         efectivoRegistrado - efectivoDia;
                       const diferenciaTarjeta =
                         montoTarjetaRegistrado - montoTarjetaDia;
                       const diferenciaTransferencia =
                         transferenciasRegistradas - transferenciasDia;
+                      const diferenciaDolares =
+                        dolaresRegistrado - dolaresDia;
                       total +=
                         diferenciaEfectivo +
                         diferenciaTarjeta +
-                        diferenciaTransferencia;
+                        diferenciaTransferencia +
+                        diferenciaDolares;
                     });
                     if (total !== 0) {
                       if (validando) {

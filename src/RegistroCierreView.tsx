@@ -25,6 +25,7 @@ export default function RegistroCierreView({
   const [efectivo, setEfectivo] = useState("");
   const [tarjeta, setTarjeta] = useState("");
   const [transferencias, setTransferencias] = useState("");
+  const [dolares, setDolares] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   // Gaveta eliminada: ya no usamos drawerLoading/drawerMessage
@@ -185,11 +186,32 @@ export default function RegistroCierreView({
       : 0;
     console.debug("transferenciasDia computed:", transferenciasDia);
 
+    // Obtener pagos en dólares (suma de usd_monto)
+    const pagosDolaresQuery = cajeroFilterIsId
+      ? pagosBase()
+          .eq("tipo", "dolares")
+          .eq("cajero_id", usuarioActual.id)
+      : pagosBase()
+          .eq("tipo", "dolares")
+          .eq("cajero", usuarioActual?.nombre);
+    const { data: pagosDolares } = await pagosDolaresQuery.select("usd_monto");
+    console.debug(
+      "pagosDolares count:",
+      pagosDolares?.length,
+      "sample:",
+      pagosDolares?.slice(0, 3)
+    );
+    const dolaresDia = pagosDolares
+      ? pagosDolares.reduce((sum, p) => sum + parseFloat(p.usd_monto || 0), 0)
+      : 0;
+    console.debug("dolaresDia computed (suma usd_monto):", dolaresDia);
+
     return {
       fondoFijoDia,
       efectivoDia: efectivoDiaNet,
       tarjetaDia,
       transferenciasDia,
+      dolaresDia,
       gastosDia,
     };
   }
@@ -256,6 +278,10 @@ export default function RegistroCierreView({
               <span>Ventas Transf.:</span>
               <span>L ${Number(registro.transferencias_dia).toFixed(2)}</span>
             </div>
+            <div class="row">
+              <span>Dólares (USD):</span>
+              <span>$ ${Number(registro.dolares_dia).toFixed(2)}</span>
+            </div>
              <div class="row">
               <span>Gastos del Día:</span>
               <span>L ${Number(gastosDia).toFixed(2)}</span>
@@ -294,6 +320,10 @@ export default function RegistroCierreView({
               <span>L ${Number(registro.transferencias_registradas).toFixed(
                 2
               )}</span>
+            </div>
+            <div class="row">
+              <span>Dólares (USD):</span>
+              <span>$ ${Number(registro.dolares_registrado).toFixed(2)}</span>
             </div>
 
             <div class="divider"></div>
@@ -408,15 +438,43 @@ export default function RegistroCierreView({
         efectivoDia,
         tarjetaDia,
         transferenciasDia,
+        dolaresDia,
         gastosDia,
       } = await obtenerValoresAutomaticos();
-      // Calcular diferencias
+      
+      // dolares_registrado: el cajero ingresa directamente el valor en USD
+      const dolaresRegistrado = dolares && parseFloat(dolares) > 0
+        ? parseFloat(dolares)
+        : 0;
+      
+      // Obtener precio del dólar para convertir diferencia de dólares a Lempiras
+      let precioDolar = 0;
+      try {
+        const { data: precioData } = await supabase
+          .from("precio_dolar")
+          .select("valor")
+          .eq("id", "singleton")
+          .limit(1)
+          .single();
+        if (precioData && typeof precioData.valor !== "undefined") {
+          precioDolar = Number(precioData.valor) || 0;
+        }
+      } catch (e) {
+        console.warn("No se pudo obtener precio_dolar:", e);
+      }
+      
+      // Calcular diferencia de dólares en Lempiras
+      const diferenciaDolaresUSD = dolaresRegistrado - dolaresDia;
+      const diferenciaDolaresLps = diferenciaDolaresUSD * precioDolar;
+      
+      // Calcular diferencias (todo en Lempiras)
       const diferencia =
         parseFloat(fondoFijo) -
         fondoFijoDia +
         (parseFloat(efectivo) - efectivoDia) +
         (parseFloat(tarjeta) - tarjetaDia) +
-        (parseFloat(transferencias) - transferenciasDia);
+        (parseFloat(transferencias) - transferenciasDia) +
+        diferenciaDolaresLps;
       let observacion = "";
       if (diferencia === 0) {
         observacion = "cuadrado";
@@ -438,6 +496,8 @@ export default function RegistroCierreView({
         monto_tarjeta_dia: number;
         transferencias_registradas: number;
         transferencias_dia: number;
+        dolares_registrado: number;
+        dolares_dia: number;
         diferencia: number;
         observacion: string;
       };
@@ -461,6 +521,8 @@ export default function RegistroCierreView({
           monto_tarjeta_dia: 0,
           transferencias_registradas: 0,
           transferencias_dia: 0,
+          dolares_registrado: 0,
+          dolares_dia: 0,
           diferencia: 0,
           observacion: "apertura",
         };
@@ -482,6 +544,8 @@ export default function RegistroCierreView({
           monto_tarjeta_dia: tarjetaDia,
           transferencias_registradas: parseFloat(transferencias),
           transferencias_dia: transferenciasDia,
+          dolares_registrado: dolaresRegistrado,
+          dolares_dia: dolaresDia,
           diferencia,
           observacion,
         };
@@ -528,9 +592,12 @@ export default function RegistroCierreView({
             efectivo_reg: String(registro.efectivo_registrado || 0),
             tarjeta_reg: String(registro.monto_tarjeta_registrado || 0),
             transf_reg: String(registro.transferencias_registradas || 0),
+            dolares_reg: String(registro.dolares_registrado || 0),
             efectivo_ventas: String(registro.efectivo_dia || 0),
             tarjeta_ventas: String(registro.monto_tarjeta_dia || 0),
             transf_ventas: String(registro.transferencias_dia || 0),
+            dolares_ventas: String(registro.dolares_dia || 0),
+            precio_dolar: String(precioDolar || 0),
             // Enviar también el total de gastos del día y asegurarnos que
             // efectivo_ventas corresponde al efectivo ya neto de esos gastos.
             gasto: String(gastosDia || 0),
@@ -712,6 +779,23 @@ export default function RegistroCierreView({
           value={transferencias}
           onChange={(e) => setTransferencias(e.target.value)}
           required={!isApertura}
+          placeholder="0.00"
+          style={{
+            padding: "10px",
+            borderRadius: 8,
+            border: "1px solid #bdbdbd",
+            fontSize: 16,
+            marginBottom: 2,
+          }}
+        />
+        <label style={{ fontWeight: 700, color: "#f57c00", marginBottom: 4 }}>
+          Dólares (USD)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          value={dolares}
+          onChange={(e) => setDolares(e.target.value)}
           placeholder="0.00"
           style={{
             padding: "10px",
