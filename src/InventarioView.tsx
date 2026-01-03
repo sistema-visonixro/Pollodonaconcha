@@ -11,6 +11,7 @@ interface Producto {
   tipo_impuesto: string;
   impuesto: number;
   sub_total: number;
+  subcategoria?: string;
 }
 
 interface InventarioViewProps {
@@ -100,6 +101,7 @@ export default function InventarioView({ onBack }: InventarioViewProps) {
         impuesto,
         sub_total,
         imagen: imagenUrl,
+        subcategoria: form.tipo === "comida" ? form.subcategoria || null : null,
       };
 
       // let result;
@@ -908,6 +910,47 @@ export default function InventarioView({ onBack }: InventarioViewProps) {
                     </select>
                   </div>
                 </div>
+                
+                {/* Campo de subcategoría solo para comida */}
+                {form.tipo === "comida" && (
+                  <div style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>
+                    <label
+                      style={{
+                        display: "block",
+                        color: "var(--text-primary)",
+                        fontWeight: 600,
+                        marginBottom: "0.5rem",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      🍴 Subcategoría
+                    </label>
+                    <input
+                      type="text"
+                      list="subcategorias-list"
+                      className="form-input"
+                      value={form.subcategoria || ""}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, subcategoria: e.target.value.toUpperCase() }))
+                      }
+                      placeholder="Ej: ROSTIZADOS, FRITOS, TACOS, ASADOS"
+                      style={{
+                        width: "100%",
+                        padding: "0.6rem",
+                        borderRadius: "8px",
+                        border: "1px solid #ddd",
+                        fontSize: "0.95rem",
+                      }}
+                    />
+                    <datalist id="subcategorias-list">
+                      <option value="ROSTIZADOS" />
+                      <option value="FRITOS" />
+                      <option value="TACOS" />
+                      <option value="ASADOS" />
+                    </datalist>
+                  </div>
+                )}
+                
                 <div style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>
                   <label
                     style={{

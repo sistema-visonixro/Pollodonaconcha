@@ -13,6 +13,7 @@ interface Producto {
   tipo: "comida" | "bebida" | "complemento";
   tipo_impuesto?: string;
   imagen?: string;
+  subcategoria?: string;
 }
 
 interface Seleccion {
@@ -357,7 +358,6 @@ export default function PuntoDeVentaView({
   };
   const [showGastoSuccess, setShowGastoSuccess] = useState(false);
   const [gastoSuccessMessage, setGastoSuccessMessage] = useState<string>("");
-  const [checkingFactura, setCheckingFactura] = useState(false);
   // Eliminado showFacturaModal
   const [nombreCliente, setNombreCliente] = useState("");
   const [caiInfo, setCaiInfo] = useState<{
@@ -384,6 +384,7 @@ export default function PuntoDeVentaView({
   const [activeTab, setActiveTab] = useState<
     "comida" | "bebida" | "complemento"
   >("comida");
+  const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<string | null>(null);
 
   // Obtener datos de CAI y factura actual
   useEffect(() => {
@@ -615,8 +616,14 @@ export default function PuntoDeVentaView({
     0
   );
 
-  // Filter products by type
-  const productosFiltrados = productos.filter((p) => p.tipo === activeTab);
+  // Filter products by type and subcategory
+  const productosFiltrados = productos.filter((p) => {
+    if (p.tipo !== activeTab) return false;
+    if (activeTab === "comida" && subcategoriaFiltro) {
+      return p.subcategoria === subcategoriaFiltro;
+    }
+    return true;
+  });
 
   return (
     <div
@@ -791,9 +798,7 @@ export default function PuntoDeVentaView({
                   <strong>DÓLARES:</strong>{" "}
                   {typeof resumenData.dolares_usd !== "undefined" ? (
                     <>
-                      ({resumenData.dolares_usd.toFixed(2)} $) 
-                      
-                      : Lps{" "}
+                      ({resumenData.dolares_usd.toFixed(2)} $) : Lps{" "}
                       {resumenData.dolares_convertidos?.toFixed(2) ??
                         resumenData.dolares.toFixed(2)}
                     </>
@@ -1105,12 +1110,13 @@ export default function PuntoDeVentaView({
         }}
         totalPedido={total}
         exchangeRate={tasaCambio}
+        theme={theme}
         onPagoConfirmado={async (paymentData) => {
           // Guardar los pagos en la base de datos
           try {
             if (paymentData.pagos && paymentData.pagos.length > 0) {
               const cambioValue = paymentData.totalPaid - total;
-              
+
               const pagosToInsert = paymentData.pagos.map((pago) => ({
                 tipo: pago.tipo,
                 monto: pago.monto,
@@ -1199,21 +1205,44 @@ export default function PuntoDeVentaView({
                 <div style='font-size:14px; font-weight:600; color:#222; text-align:center; margin-bottom:6px;'>Factura: ${
                   facturaActual || ""
                 }</div>
-                <ul style='list-style:none; padding:0; margin-bottom:0;'>
-                  ${seleccionados
-                    .filter((p) => p.tipo === "comida")
-                    .map(
-                      (p) =>
-                        `<li style='font-size:${
-                          etiquetaConfig?.etiqueta_fontsize || 20
-                        }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
-                          p.nombre
-                        }</span><span>L ${p.precio.toFixed(2)} x${
-                          p.cantidad
-                        }</span></div></li>`
-                    )
-                    .join("")}
-                </ul>
+                
+                ${seleccionados.filter((p) => p.tipo === "comida").length > 0 ? `
+                  <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>COMIDAS</div>
+                  <ul style='list-style:none; padding:0; margin-bottom:12px;'>
+                    ${seleccionados
+                      .filter((p) => p.tipo === "comida")
+                      .map(
+                        (p) =>
+                          `<li style='font-size:${
+                            etiquetaConfig?.etiqueta_fontsize || 20
+                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
+                            p.nombre
+                          }</span><span>L ${p.precio.toFixed(2)} x${
+                            p.cantidad
+                          }</span></div></li>`
+                      )
+                      .join("")}
+                  </ul>
+                ` : ''}
+                
+                ${seleccionados.filter((p) => p.tipo === "complemento").length > 0 ? `
+                  <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>COMPLEMENTOS</div>
+                  <ul style='list-style:none; padding:0; margin-bottom:0;'>
+                    ${seleccionados
+                      .filter((p) => p.tipo === "complemento")
+                      .map(
+                        (p) =>
+                          `<li style='font-size:${
+                            etiquetaConfig?.etiqueta_fontsize || 20
+                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
+                            p.nombre
+                          }</span><span>L ${p.precio.toFixed(2)} x${
+                            p.cantidad
+                          }</span></div></li>`
+                      )
+                      .join("")}
+                  </ul>
+                ` : ''}
               </div>
             `;
             // Recibo - Formato SAR
@@ -1233,6 +1262,62 @@ export default function PuntoDeVentaView({
                 (sum, p) => sum + (p.precio - p.precio / 1.15) * p.cantidad,
                 0
               );
+
+            // Calcular pagos para el recibo
+            const efectivoTotal = paymentData.pagos?.filter(p => p.tipo === 'efectivo').reduce((sum, p) => sum + p.monto, 0) || 0;
+            const tarjetaTotal = paymentData.pagos?.filter(p => p.tipo === 'tarjeta').reduce((sum, p) => sum + p.monto, 0) || 0;
+            const dolaresTotal = paymentData.pagos?.filter(p => p.tipo === 'dolares').reduce((sum, p) => sum + p.monto, 0) || 0;
+            const dolaresUSD = paymentData.pagos?.filter(p => p.tipo === 'dolares').reduce((sum, p) => sum + (p.usd_monto || 0), 0) || 0;
+            const transferenciaTotal = paymentData.pagos?.filter(p => p.tipo === 'transferencia').reduce((sum, p) => sum + p.monto, 0) || 0;
+            const cambioValue = paymentData.totalPaid - total;
+            
+            let pagosHtml = '';
+            if (efectivoTotal > 0 || tarjetaTotal > 0 || dolaresTotal > 0 || transferenciaTotal > 0) {
+              pagosHtml += "<div style='border-top:1px dashed #000; margin-top:10px; padding-top:10px;'>";
+              pagosHtml += "<div style='font-size:15px; font-weight:700; margin-bottom:6px;'>PAGOS RECIBIDOS:</div>";
+              
+              if (efectivoTotal > 0) {
+                pagosHtml += "<div style='font-size:14px; margin-bottom:3px;'>";
+                pagosHtml += "<span style='float:left;'>Efectivo:</span>";
+                pagosHtml += "<span style='float:right;'>L " + efectivoTotal.toFixed(2) + "</span>";
+                pagosHtml += "<div style='clear:both;'></div>";
+                pagosHtml += "</div>";
+              }
+              
+              if (tarjetaTotal > 0) {
+                pagosHtml += "<div style='font-size:14px; margin-bottom:3px;'>";
+                pagosHtml += "<span style='float:left;'>Tarjeta:</span>";
+                pagosHtml += "<span style='float:right;'>L " + tarjetaTotal.toFixed(2) + "</span>";
+                pagosHtml += "<div style='clear:both;'></div>";
+                pagosHtml += "</div>";
+              }
+              
+              if (dolaresTotal > 0) {
+                pagosHtml += "<div style='font-size:14px; margin-bottom:3px;'>";
+                pagosHtml += "<span style='float:left;'>Dólares: $" + dolaresUSD.toFixed(2) + " USD</span>";
+                pagosHtml += "<span style='float:right;'>L " + dolaresTotal.toFixed(2) + "</span>";
+                pagosHtml += "<div style='clear:both;'></div>";
+                pagosHtml += "</div>";
+              }
+              
+              if (transferenciaTotal > 0) {
+                pagosHtml += "<div style='font-size:14px; margin-bottom:3px;'>";
+                pagosHtml += "<span style='float:left;'>Transferencia:</span>";
+                pagosHtml += "<span style='float:right;'>L " + transferenciaTotal.toFixed(2) + "</span>";
+                pagosHtml += "<div style='clear:both;'></div>";
+                pagosHtml += "</div>";
+              }
+              
+              if (cambioValue > 0) {
+                pagosHtml += "<div style='font-size:15px; margin-top:6px; padding-top:6px; border-top:1px solid #000; font-weight:700;'>";
+                pagosHtml += "<span style='float:left;'>CAMBIO:</span>";
+                pagosHtml += "<span style='float:right;'>L " + cambioValue.toFixed(2) + "</span>";
+                pagosHtml += "<div style='clear:both;'></div>";
+                pagosHtml += "</div>";
+              }
+              
+              pagosHtml += "</div>";
+            }
 
             const comprobanteHtml = `
               <div style='font-family:monospace; width:${
@@ -1326,6 +1411,8 @@ export default function PuntoDeVentaView({
                   <div style='clear:both;'></div>
                 </div>
                 
+                ${pagosHtml}
+                
                 <!-- Mensaje de Agradecimiento -->
                 <div style='text-align:center; margin-top:18px; font-size:15px; font-weight:700; border-top:1px dashed #000; padding-top:10px;'>
                   ¡GRACIAS POR SU COMPRA!
@@ -1335,21 +1422,39 @@ export default function PuntoDeVentaView({
                 </div>
               </div>
             `;
-            // Unir ambos con salto de página
+            // Imprimir recibo y comanda sin cortes automáticos en el recibo
             const printHtml = `
               <html>
                 <head>
                   <title>Recibo y Comanda</title>
                   <style>
+                    @page {
+                      margin: 0;
+                      size: auto;
+                    }
+                    body {
+                      margin: 0;
+                      padding: 0;
+                      overflow: visible;
+                    }
+                    * {
+                      page-break-inside: avoid;
+                      -webkit-print-color-adjust: exact;
+                    }
                     @media print {
-                      .page-break { page-break-after: always; }
+                      html, body {
+                        height: auto;
+                        overflow: visible;
+                      }
+                      .comanda-break {
+                        page-break-before: always;
+                      }
                     }
                   </style>
                 </head>
                 <body>
                   <div>${comprobanteHtml}</div>
-                  <div class="page-break"></div>
-                  <div>${comandaHtml}</div>
+                  <div class="comanda-break">${comandaHtml}</div>
                 </body>
               </html>
             `;
@@ -1519,7 +1624,10 @@ export default function PuntoDeVentaView({
             }}
           >
             <button
-              onClick={() => setActiveTab("comida")}
+              onClick={() => {
+                setActiveTab("comida");
+                setSubcategoriaFiltro(null);
+              }}
               style={{
                 flex: 1,
                 padding: "12px 0",
@@ -1537,7 +1645,10 @@ export default function PuntoDeVentaView({
               Comidas
             </button>
             <button
-              onClick={() => setActiveTab("complemento")}
+              onClick={() => {
+                setActiveTab("complemento");
+                setSubcategoriaFiltro(null);
+              }}
               style={{
                 flex: 1,
                 padding: "12px 0",
@@ -1555,7 +1666,10 @@ export default function PuntoDeVentaView({
               Complementos
             </button>
             <button
-              onClick={() => setActiveTab("bebida")}
+              onClick={() => {
+                setActiveTab("bebida");
+                setSubcategoriaFiltro(null);
+              }}
               style={{
                 flex: 1,
                 padding: "12px 0",
@@ -1573,6 +1687,105 @@ export default function PuntoDeVentaView({
               Bebidas
             </button>
           </div>
+
+          {/* Botones de filtro por subcategor\u00eda (solo para comida) */}
+          {activeTab === "comida" && (() => {
+            const subcategorias = Array.from(
+              new Set(
+                productos
+                  .filter((p) => p.tipo === "comida" && p.subcategoria)
+                  .map((p) => p.subcategoria)
+              )
+            ).filter(Boolean) as string[];
+            
+            if (subcategorias.length === 0) return null;
+            
+            const colores = [
+              { bg: "#ff6b6b", hover: "#ee5a5a" },
+              { bg: "#4ecdc4", hover: "#45b8b0" },
+              { bg: "#ffe66d", hover: "#f4d747" },
+              { bg: "#95e1d3", hover: "#7dd4c3" },
+              { bg: "#ffa502", hover: "#e89400" },
+              { bg: "#ff6348", hover: "#e84c3a" },
+            ];
+            
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  marginBottom: 16,
+                  flexWrap: "wrap",
+                  padding: "8px 0",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setSubcategoriaFiltro(null);
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: !subcategoriaFiltro ? "#fff" : "#666",
+                    background: !subcategoriaFiltro ? "#388e3c" : "#e0e0e0",
+                    border: "none",
+                    borderRadius: 20,
+                    cursor: "pointer",
+                    transition: "all 0.3s",
+                    boxShadow: !subcategoriaFiltro ? "0 4px 8px rgba(56, 142, 60, 0.3)" : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!subcategoriaFiltro) {
+                      e.currentTarget.style.background = "#2e7d32";
+                    } else {
+                      e.currentTarget.style.background = "#d0d0d0";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = !subcategoriaFiltro ? "#388e3c" : "#e0e0e0";
+                  }}
+                >
+                  TODOS
+                </button>
+                {subcategorias.map((sub, idx) => {
+                  const color = colores[idx % colores.length];
+                  const isActive = subcategoriaFiltro === sub;
+                  return (
+                    <button
+                      key={sub}
+                      onClick={() => {
+                        setSubcategoriaFiltro(isActive ? null : sub);
+                      }}
+                      style={{
+                        padding: "10px 20px",
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: "#fff",
+                        background: isActive ? color.bg : "#bdbdbd",
+                        border: "none",
+                        borderRadius: 20,
+                        cursor: "pointer",
+                        transition: "all 0.3s",
+                        boxShadow: isActive ? `0 4px 8px ${color.bg}50` : "none",
+                        transform: isActive ? "scale(1.05)" : "scale(1)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = color.hover;
+                        e.currentTarget.style.transform = "scale(1.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = isActive ? color.bg : "#bdbdbd";
+                        e.currentTarget.style.transform = isActive ? "scale(1.05)" : "scale(1)";
+                      }}
+                    >
+                      {sub}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Product Grid */}
           {loading ? (
@@ -1746,132 +1959,21 @@ export default function PuntoDeVentaView({
                     fontWeight: 600,
                     fontSize: 16,
                     cursor: "pointer",
-                    opacity:
-                      seleccionados.length === 0 || checkingFactura ? 0.5 : 1,
+                    opacity: seleccionados.length === 0 ? 0.5 : 1,
                     transition: "background 0.3s",
                   }}
-                  disabled={seleccionados.length === 0 || checkingFactura}
-                  onClick={async () => {
-                    // Al tocar "Confirmar Pedido" validar conexión y número de factura
+                  disabled={seleccionados.length === 0}
+                  onClick={() => {
+                    // Validación rápida
                     if (facturaActual === "Límite alcanzado") {
                       alert("¡Límite de facturas alcanzado!");
                       return;
                     }
-                    if (!navigator.onLine) {
-                      // Mostrar modal que indique problema de red
-                      setShowNoConnectionModal(true);
-                      return;
-                    }
-                    // Evitar llamadas concurrentes
-                    if (checkingFactura) return;
-                    setCheckingFactura(true);
-                    try {
-                      // Obtener datos de CAI (rango y caja) para respetar límite si es posible
-                      let rango_fin: number | null = null;
-                      let cajaAsignada = caiInfo?.caja_asignada;
-                      try {
-                        const { data: caiData } = await supabase
-                          .from("cai_facturas")
-                          .select("rango_desde, rango_hasta, caja_asignada")
-                          .eq("cajero_id", usuarioActual?.id)
-                          .single();
-                        if (caiData) {
-                          rango_fin = caiData.rango_hasta
-                            ? parseInt(caiData.rango_hasta)
-                            : null;
-                          cajaAsignada = caiData.caja_asignada || cajaAsignada;
-                        }
-                      } catch (e) {
-                        // si falla, continuar sin rango
-                      }
-
-                      // Empezar desde el número actual
-                      let num = parseInt(facturaActual as string);
-                      if (!Number.isFinite(num)) {
-                        // Si no es numérico, intentar recalcular como en fetchCaiYFactura
-                        const { data: facturasData } = await supabase
-                          .from("facturas")
-                          .select("factura")
-                          .eq("cajero", usuarioActual?.nombre)
-                          .eq("caja", cajaAsignada || "");
-                        let maxFactura = -1;
-                        if (facturasData && facturasData.length > 0) {
-                          for (const f of facturasData) {
-                            const n = parseInt(f.factura);
-                            if (Number.isFinite(n) && n > maxFactura)
-                              maxFactura = n;
-                          }
-                        }
-                        if (maxFactura >= 0) {
-                          num = maxFactura + 1;
-                        } else {
-                          // fallback: usar 1
-                          num = 1;
-                        }
-                      }
-
-                      // Buscar un número libre incrementando si está ocupado en facturas o pagos
-                      const maxAttempts = 1000; // to avoid infinite loop
-                      let attempts = 0;
-                      while (attempts < maxAttempts) {
-                        attempts++;
-                        const facturaStr = num.toString();
-                        // comprobar en facturas
-                        const { data: factData } = await supabase
-                          .from("facturas")
-                          .select("factura")
-                          .eq("factura", facturaStr)
-                          .eq("caja", cajaAsignada || "")
-                          .limit(1);
-                        // comprobar en pagos
-                        const { data: pagosData } = await supabase
-                          .from("pagos")
-                          .select("factura")
-                          .eq("factura", facturaStr)
-                          .eq("cajero", usuarioActual?.nombre)
-                          .eq("caja", cajaAsignada || "")
-                          .limit(1);
-
-                        const existeFactura =
-                          Array.isArray(factData) && factData.length > 0;
-                        const existePago =
-                          Array.isArray(pagosData) && pagosData.length > 0;
-
-                        if (!existeFactura && !existePago) {
-                          // número libre
-                          setFacturaActual(facturaStr);
-                          setShowClienteModal(true);
-                          break;
-                        }
-
-                        // Si existe, incrementar y reintentar
-                        num++;
-                        // Si tenemos rango_fin, verificar que no lo excedemos
-                        if (rango_fin && num > rango_fin) {
-                          setFacturaActual("Límite alcanzado");
-                          alert(
-                            "¡Se ha alcanzado el límite de facturas para este cajero!"
-                          );
-                          break;
-                        }
-                      }
-
-                      if (attempts >= maxAttempts) {
-                        alert(
-                          "No se pudo asignar un número de factura libre, intenta de nuevo más tarde."
-                        );
-                      }
-                    } catch (err) {
-                      console.error("Error validando factura:", err);
-                      alert(
-                        "Error al validar número de factura. Intenta de nuevo."
-                      );
-                    } finally {
-                      setCheckingFactura(false);
-                    }
+                    // Abrir modal inmediatamente sin verificaciones costosas
+                    setShowClienteModal(true);
                   }}
                 >
-                  {checkingFactura ? "Verificando..." : "Confirmar Pedido"}
+                  Confirmar Pedido
                 </button>
                 <button
                   style={{
@@ -2114,10 +2216,17 @@ export default function PuntoDeVentaView({
               Nombre del Cliente
             </h3>
             <input
+              ref={(el) => el?.focus()}
               type="text"
               placeholder="Ingrese el nombre del cliente"
               value={nombreCliente}
               onChange={(e) => setNombreCliente(e.target.value.toUpperCase())}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && nombreCliente.trim()) {
+                  setShowClienteModal(false);
+                  setShowPagoModal(true);
+                }
+              }}
               style={{
                 padding: "10px",
                 borderRadius: 8,
@@ -2487,20 +2596,44 @@ export default function PuntoDeVentaView({
                           <div style='font-size:14px; font-weight:600; color:#222; text-align:center; margin-bottom:6px;'>Factura: ${
                             facturaActual || ""
                           }</div>
-                          <ul style='list-style:none; padding:0; margin-bottom:0;'>
-                            ${registro.productos
-                              .map(
-                                (p: any) =>
-                                  `<li style='font-size:${
-                                    etiquetaConfig?.etiqueta_fontsize || 20
-                                  }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
-                                    p.nombre
-                                  }</span><span>L ${p.precio.toFixed(2)} x${
-                                    p.cantidad
-                                  }</span></div></li>`
-                              )
-                              .join("")}
-                          </ul>
+                          
+                          ${seleccionados.filter((p) => p.tipo === "comida").length > 0 ? `
+                            <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>COMIDAS</div>
+                            <ul style='list-style:none; padding:0; margin-bottom:12px;'>
+                              ${seleccionados
+                                .filter((p) => p.tipo === "comida")
+                                .map(
+                                  (p) =>
+                                    `<li style='font-size:${
+                                      etiquetaConfig?.etiqueta_fontsize || 20
+                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
+                                      p.nombre
+                                    }</span><span>L ${p.precio.toFixed(2)} x${
+                                      p.cantidad
+                                    }</span></div></li>`
+                                )
+                                .join("")}
+                            </ul>
+                          ` : ''}
+                          
+                          ${seleccionados.filter((p) => p.tipo === "complemento").length > 0 ? `
+                            <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>COMPLEMENTOS</div>
+                            <ul style='list-style:none; padding:0; margin-bottom:0;'>
+                              ${seleccionados
+                                .filter((p) => p.tipo === "complemento")
+                                .map(
+                                  (p) =>
+                                    `<li style='font-size:${
+                                      etiquetaConfig?.etiqueta_fontsize || 20
+                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
+                                      p.nombre
+                                    }</span><span>L ${p.precio.toFixed(2)} x${
+                                      p.cantidad
+                                    }</span></div></li>`
+                                )
+                                .join("")}
+                            </ul>
+                          ` : ''}
                         </div>
                       `;
 
@@ -2644,14 +2777,18 @@ export default function PuntoDeVentaView({
                           <head>
                             <title>Recibo y Comanda</title>
                             <style>
-                              @media print { .page-break { page-break-after: always; } }
-                              body { margin:0; padding:0; }
+                              @page { margin: 0; size: auto; }
+                              body { margin:0; padding:0; overflow: visible; }
+                              * { page-break-inside: avoid; -webkit-print-color-adjust: exact; }
+                              @media print { 
+                                html, body { height: auto; overflow: visible; }
+                                .comanda-break { page-break-before: always; } 
+                              }
                             </style>
                           </head>
                           <body>
                             <div>${comprobanteHtml}</div>
-                            <div class='page-break'></div>
-                            <div>${comandaHtml}</div>
+                            <div class='comanda-break'>${comandaHtml}</div>
                           </body>
                         </html>
                       `;

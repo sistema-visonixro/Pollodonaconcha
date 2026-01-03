@@ -163,43 +163,46 @@ export default function ResultadosView({
       const hastaFin = `${hasta} 23:59:59`;
 
       // Consultas paralelas (incluyendo precio_dolar)
-      const [factRes, gastRes, pagosRes, cierresRes, precioDolarRes] = await Promise.all([
-        supabase
-          .from("facturas")
-          .select("*")
-          .gte("fecha_hora", desdeInicio)
-          .lte("fecha_hora", hastaFin)
-          .order("fecha_hora", { ascending: true }),
-        supabase
-          .from("gastos")
-          .select("*")
-          .gte("fecha", desde)
-          .lte("fecha", hasta)
-          .order("fecha", { ascending: true }),
-        supabase
-          .from("pagos")
-          .select("*")
-          .gte("fecha_hora", desdeInicio)
-          .lte("fecha_hora", hastaFin)
-          .order("fecha_hora", { ascending: true }),
-        supabase
-          .from("cierres")
-          .select("monto, observacion, fecha")
-          .eq("tipo_registro", "cierre")
-          .eq("observacion", "sin aclarar")
-          // la columna `fecha` puede ser fecha o timestamp; usar comparador por día
-          .gte("fecha", desde)
-          .lte("fecha", hasta)
-          .order("fecha", { ascending: true }),
-        supabase
-          .from("precio_dolar")
-          .select("valor")
-          .eq("id", "singleton")
-          .limit(1)
-          .single(),
-      ]);
+      const [factRes, gastRes, pagosRes, cierresRes, precioDolarRes] =
+        await Promise.all([
+          supabase
+            .from("facturas")
+            .select("*")
+            .gte("fecha_hora", desdeInicio)
+            .lte("fecha_hora", hastaFin)
+            .order("fecha_hora", { ascending: true }),
+          supabase
+            .from("gastos")
+            .select("*")
+            .gte("fecha", desde)
+            .lte("fecha", hasta)
+            .order("fecha", { ascending: true }),
+          supabase
+            .from("pagos")
+            .select("*")
+            .gte("fecha_hora", desdeInicio)
+            .lte("fecha_hora", hastaFin)
+            .order("fecha_hora", { ascending: true }),
+          supabase
+            .from("cierres")
+            .select("monto, observacion, fecha")
+            .eq("tipo_registro", "cierre")
+            .eq("observacion", "sin aclarar")
+            // la columna `fecha` puede ser fecha o timestamp; usar comparador por día
+            .gte("fecha", desde)
+            .lte("fecha", hasta)
+            .order("fecha", { ascending: true }),
+          supabase
+            .from("precio_dolar")
+            .select("valor")
+            .eq("id", "singleton")
+            .limit(1)
+            .single(),
+        ]);
 
-      const precioDolar = precioDolarRes.data?.valor ? Number(precioDolarRes.data.valor) : 0;
+      const precioDolar = precioDolarRes.data?.valor
+        ? Number(precioDolarRes.data.valor)
+        : 0;
 
       const factData = factRes.data || [];
       const gastData = gastRes.data || [];
@@ -340,7 +343,9 @@ export default function ResultadosView({
 
       html += `<div class="section"><h2>Pagos</h2>`;
       if (precioDolar > 0) {
-        html += `<p style="background:#fff9e6;padding:8px;border-radius:4px;font-size:13px;"><b>Tipo de Cambio:</b> L ${precioDolar.toFixed(2)} por $1.00 USD</p>`;
+        html += `<p style="background:#fff9e6;padding:8px;border-radius:4px;font-size:13px;"><b>Tipo de Cambio:</b> L ${precioDolar.toFixed(
+          2
+        )} por $1.00 USD</p>`;
       }
       html += `<table><thead><tr><th>Tipo</th><th>Monto</th></tr></thead><tbody>`;
       const tipos = ["efectivo", "transferencia", "tarjeta"];
@@ -354,8 +359,12 @@ export default function ResultadosView({
       });
       // Dólares: mostrar USD, conversión y Lps
       if (dolaresUSD > 0) {
-        const dolaresUSDFmt = dolaresUSD.toLocaleString("de-DE", { minimumFractionDigits: 2 });
-        const dolaresLpsFmt = dolaresLps.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+        const dolaresUSDFmt = dolaresUSD.toLocaleString("de-DE", {
+          minimumFractionDigits: 2,
+        });
+        const dolaresLpsFmt = dolaresLps.toLocaleString("de-DE", {
+          minimumFractionDigits: 2,
+        });
         html += `<tr><td>Dólares</td><td><b>$ ${dolaresUSDFmt}</b> <span style="color:#666;font-size:12px;">(L ${dolaresLpsFmt})</span></td></tr>`;
       }
       // Incluir otros tipos si existen
@@ -363,7 +372,9 @@ export default function ResultadosView({
         if (![...tipos, "dolares"].includes(t)) {
           const m = Number(pagosPorTipo[t] || 0);
           if (m > 0) {
-            const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+            const mFmt = m.toLocaleString("de-DE", {
+              minimumFractionDigits: 2,
+            });
             const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
             html += `<tr><td>${tLabel}</td><td>L ${mFmt}</td></tr>`;
           }

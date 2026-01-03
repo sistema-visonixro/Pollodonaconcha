@@ -20,7 +20,7 @@ export default function RegistroCierreView({
 }: RegistroCierreViewProps) {
   // Cargar datos del negocio
   const { datos: datosNegocio } = useDatosNegocio();
-  
+
   const [fondoFijo, setFondoFijo] = useState("");
   const [efectivo, setEfectivo] = useState("");
   const [tarjeta, setTarjeta] = useState("");
@@ -188,12 +188,8 @@ export default function RegistroCierreView({
 
     // Obtener pagos en dólares (suma de usd_monto)
     const pagosDolaresQuery = cajeroFilterIsId
-      ? pagosBase()
-          .eq("tipo", "dolares")
-          .eq("cajero_id", usuarioActual.id)
-      : pagosBase()
-          .eq("tipo", "dolares")
-          .eq("cajero", usuarioActual?.nombre);
+      ? pagosBase().eq("tipo", "dolares").eq("cajero_id", usuarioActual.id)
+      : pagosBase().eq("tipo", "dolares").eq("cajero", usuarioActual?.nombre);
     const { data: pagosDolares } = await pagosDolaresQuery.select("usd_monto");
     console.debug(
       "pagosDolares count:",
@@ -441,12 +437,11 @@ export default function RegistroCierreView({
         dolaresDia,
         gastosDia,
       } = await obtenerValoresAutomaticos();
-      
+
       // dolares_registrado: el cajero ingresa directamente el valor en USD
-      const dolaresRegistrado = dolares && parseFloat(dolares) > 0
-        ? parseFloat(dolares)
-        : 0;
-      
+      const dolaresRegistrado =
+        dolares && parseFloat(dolares) > 0 ? parseFloat(dolares) : 0;
+
       // Obtener precio del dólar para convertir diferencia de dólares a Lempiras
       let precioDolar = 0;
       try {
@@ -462,11 +457,11 @@ export default function RegistroCierreView({
       } catch (e) {
         console.warn("No se pudo obtener precio_dolar:", e);
       }
-      
+
       // Calcular diferencia de dólares en Lempiras
       const diferenciaDolaresUSD = dolaresRegistrado - dolaresDia;
       const diferenciaDolaresLps = diferenciaDolaresUSD * precioDolar;
-      
+
       // Calcular diferencias (todo en Lempiras)
       const diferencia =
         parseFloat(fondoFijo) -

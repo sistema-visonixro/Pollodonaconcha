@@ -1,16 +1,161 @@
-BUNKET
+-- =========================
+-- EXTENSIONES NECESARIAS
+-- =========================
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- =========================
+-- TABLA BASE (SIN DEPENDENCIAS)
+-- =========================
+CREATE TABLE public.usuarios (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre text NOT NULL,
+    codigo text NOT NULL UNIQUE,
+    clave text NOT NULL,
+    rol text NOT NULL DEFAULT 'usuario',
+    ip text,
+    caja text
+);
 
-: inventario
-politicas: SELECT  INSERT UPDATE
+-- =========================
+-- TABLAS SIN FOREIGN KEYS
+-- =========================
+CREATE TABLE public.productos (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    codigo integer NOT NULL UNIQUE,
+    nombre text NOT NULL,
+    imagen text,
+    precio numeric NOT NULL,
+    tipo text NOT NULL,
+    tipo_impuesto text NOT NULL,
+    impuesto numeric NOT NULL,
+    sub_total numeric NOT NULL
+);
 
+CREATE TABLE public.claves_autorizacion (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    clave numeric NOT NULL,
+    descripcion character varying
+);
 
+CREATE TABLE public.etiquetas_config (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre character varying NOT NULL DEFAULT 'default',
+    etiqueta_comanda character varying,
+    etiqueta_recibo character varying,
+    etiqueta_ancho integer DEFAULT 58,
+    etiqueta_alto integer DEFAULT 40,
+    etiqueta_fontsize integer DEFAULT 14,
+    etiqueta_padding integer DEFAULT 8,
+    actualizado timestamp DEFAULT now()
+);
 
+CREATE TABLE public.recibo_config (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre character varying NOT NULL DEFAULT 'default',
+    recibo_texto character varying,
+    recibo_ancho integer DEFAULT 58,
+    recibo_alto integer DEFAULT 40,
+    recibo_fontsize integer DEFAULT 14,
+    recibo_padding integer DEFAULT 8,
+    actualizado timestamp DEFAULT now()
+);
 
-TABLAS
--- Crear tabla datos_negocio en Supabase
--- Esta tabla almacenará la información del negocio
+-- =========================
+-- TABLAS OPERATIVAS
+-- =========================
+CREATE TABLE public.cierres (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo_registro character varying NOT NULL,
+    cajero character varying NOT NULL,
+    caja character varying NOT NULL,
+    fecha timestamp DEFAULT CURRENT_TIMESTAMP,
+    fondo_fijo_registrado numeric,
+    fondo_fijo numeric,
+    efectivo_registrado numeric,
+    efectivo_dia numeric,
+    monto_tarjeta_registrado numeric,
+    monto_tarjeta_dia numeric,
+    transferencias_registradas numeric,
+    transferencias_dia numeric,
+    diferencia numeric,
+    observacion character varying,
+    cajero_id text
+);
 
+CREATE TABLE public.facturas (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    fecha_hora timestamp DEFAULT now(),
+    cajero text,
+    caja text,
+    cai text,
+    factura text,
+    cliente text,
+    productos text,
+    sub_total numeric,
+    isv_15 numeric,
+    isv_18 numeric,
+    total numeric,
+    cajero_id text
+);
+
+CREATE TABLE public.gastos (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    fecha date NOT NULL,
+    monto numeric NOT NULL,
+    motivo text NOT NULL,
+    cajero_id text,
+    caja text
+);
+
+CREATE TABLE public.pagos (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    tipo character varying NOT NULL,
+    monto numeric NOT NULL,
+    referencia character varying,
+    tarjeta character varying,
+    factura character varying,
+    fecha_hora timestamp DEFAULT CURRENT_TIMESTAMP,
+    cajero character varying,
+    recibido numeric,
+    cambio numeric,
+    cliente character varying,
+    factura_venta character varying,
+    cajero_id text
+);
+
+CREATE TABLE public.pedidos_envio (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    productos jsonb NOT NULL,
+    cajero_id text,
+    caja text,
+    fecha text NOT NULL,
+    cliente text,
+    celular text,
+    total numeric NOT NULL,
+    costo_envio numeric DEFAULT 0,
+    tipo_pago text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+-- =========================
+-- TABLAS CON FOREIGN KEYS
+-- =========================
+CREATE TABLE public.cai_facturas (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    cai text NOT NULL,
+    rango_desde integer NOT NULL,
+    rango_hasta integer NOT NULL,
+    caja_asignada text NOT NULL,
+    cajero_id uuid NOT NULL,
+    creado_en timestamp with time zone DEFAULT now(),
+    CONSTRAINT cai_facturas_cajero_id_fkey
+        FOREIGN KEY (cajero_id)
+        REFERENCES public.usuarios(id)
+);
+
+-- =========================
+-- DATOS DEL NEGOCIO
+-- =========================
 CREATE TABLE IF NOT EXISTS public.datos_negocio (
     id SERIAL PRIMARY KEY,
     nombre_negocio VARCHAR(255) NOT NULL,
@@ -23,7 +168,6 @@ CREATE TABLE IF NOT EXISTS public.datos_negocio (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
--- Agregar comentarios a las columnas para documentación
 COMMENT ON TABLE public.datos_negocio IS 'Información general del negocio';
 COMMENT ON COLUMN public.datos_negocio.id IS 'Identificador único';
 COMMENT ON COLUMN public.datos_negocio.nombre_negocio IS 'Nombre comercial del negocio';
@@ -33,24 +177,23 @@ COMMENT ON COLUMN public.datos_negocio.celular IS 'Número de teléfono celular'
 COMMENT ON COLUMN public.datos_negocio.propietario IS 'Nombre del propietario';
 COMMENT ON COLUMN public.datos_negocio.logo_url IS 'URL del logo almacenado en Supabase Storage';
 
--- Habilitar Row Level Security (RLS)
+-- =========================
+-- RLS + POLÍTICAS DATOS NEGOCIO
+-- =========================
 ALTER TABLE public.datos_negocio ENABLE ROW LEVEL SECURITY;
 
--- Política para permitir lectura a todos los usuarios autenticados
 CREATE POLICY "Permitir lectura a usuarios autenticados"
 ON public.datos_negocio
 FOR SELECT
 TO authenticated
 USING (true);
 
--- Política para permitir inserción solo a usuarios autenticados
 CREATE POLICY "Permitir inserción a usuarios autenticados"
 ON public.datos_negocio
 FOR INSERT
 TO authenticated
 WITH CHECK (true);
 
--- Política para permitir actualización solo a usuarios autenticados
 CREATE POLICY "Permitir actualización a usuarios autenticados"
 ON public.datos_negocio
 FOR UPDATE
@@ -58,7 +201,9 @@ TO authenticated
 USING (true)
 WITH CHECK (true);
 
--- Crear función para actualizar automáticamente updated_at
+-- =========================
+-- TRIGGER updated_at
+-- =========================
 CREATE OR REPLACE FUNCTION public.actualizar_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -67,191 +212,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Crear trigger para actualizar updated_at automáticamente
 CREATE TRIGGER trigger_actualizar_updated_at
-    BEFORE UPDATE ON public.datos_negocio
-    FOR EACH ROW
-    EXECUTE FUNCTION public.actualizar_updated_at();
+BEFORE UPDATE ON public.datos_negocio
+FOR EACH ROW
+EXECUTE FUNCTION public.actualizar_updated_at();
 
--- Insertar registro inicial (opcional - puedes modificar los valores)
-INSERT INTO public.datos_negocio (nombre_negocio, rtn, direccion, celular, propietario, logo_url)
-VALUES ('Mi Negocio', '0000-0000-000000', 'Dirección del negocio', '0000-0000', 'Nombre del propietario', NULL)
+INSERT INTO public.datos_negocio
+(nombre_negocio, rtn, direccion, celular, propietario, logo_url)
+VALUES
+('Mi Negocio', '0000-0000-000000', 'Dirección del negocio', '0000-0000', 'Nombre del propietario', NULL)
 ON CONFLICT DO NOTHING;
 
-
--- EXTENSIONES NECESARIAS
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 -- =========================
--- TABLA BASE (SIN DEPENDENCIAS)
+-- MODIFICACIONES TABLA PAGOS
 -- =========================
-CREATE TABLE public.usuarios (
-id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-nombre text NOT NULL,
-codigo text NOT NULL UNIQUE,
-clave text NOT NULL,
-rol text NOT NULL DEFAULT 'usuario',
-ip text,
-caja text
-);
-
--- =========================
--- TABLAS SIN FOREIGN KEYS
--- =========================
-CREATE TABLE public.productos (
-id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-codigo integer NOT NULL UNIQUE,
-nombre text NOT NULL,
-imagen text,
-precio numeric NOT NULL,
-tipo text NOT NULL,
-tipo_impuesto text NOT NULL,
-impuesto numeric NOT NULL,
-sub_total numeric NOT NULL
-);
-
-CREATE TABLE public.claves_autorizacion (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-clave numeric NOT NULL,
-descripcion character varying
-);
-
-CREATE TABLE public.etiquetas_config (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nombre character varying NOT NULL DEFAULT 'default',
-etiqueta_comanda character varying,
-etiqueta_recibo character varying,
-etiqueta_ancho integer DEFAULT 58,
-etiqueta_alto integer DEFAULT 40,
-etiqueta_fontsize integer DEFAULT 14,
-etiqueta_padding integer DEFAULT 8,
-actualizado timestamp DEFAULT now()
-);
-
-CREATE TABLE public.recibo_config (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-nombre character varying NOT NULL DEFAULT 'default',
-recibo_texto character varying,
-recibo_ancho integer DEFAULT 58,
-recibo_alto integer DEFAULT 40,
-recibo_fontsize integer DEFAULT 14,
-recibo_padding integer DEFAULT 8,
-actualizado timestamp DEFAULT now()
-);
-
--- =========================
--- TABLAS OPERATIVAS
--- =========================
-CREATE TABLE public.cierres (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-tipo_registro character varying NOT NULL,
-cajero character varying NOT NULL,
-caja character varying NOT NULL,
-fecha timestamp DEFAULT CURRENT_TIMESTAMP,
-fondo_fijo_registrado numeric,
-fondo_fijo numeric,
-efectivo_registrado numeric,
-efectivo_dia numeric,
-monto_tarjeta_registrado numeric,
-monto_tarjeta_dia numeric,
-transferencias_registradas numeric,
-transferencias_dia numeric,
-diferencia numeric,
-observacion character varying,
-cajero_id text
-);
-
-CREATE TABLE public.facturas (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-fecha_hora timestamp DEFAULT now(),
-cajero text,
-caja text,
-cai text,
-factura text,
-cliente text,
-productos text,
-sub_total numeric,
-isv_15 numeric,
-isv_18 numeric,
-total numeric,
-cajero_id text
-);
-
-CREATE TABLE public.gastos (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-fecha date NOT NULL,
-monto numeric NOT NULL,
-motivo text NOT NULL,
-cajero_id text,
-caja text
-);
-
-CREATE TABLE public.pagos (
-id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-tipo character varying NOT NULL,
-monto numeric NOT NULL,
-referencia character varying,
-tarjeta character varying,
-factura character varying,
-fecha_hora timestamp DEFAULT CURRENT_TIMESTAMP,
-cajero character varying,
-recibido numeric,
-cambio numeric,
-cliente character varying,
-factura_venta character varying,
-cajero_id text
-);
-
-CREATE TABLE public.pedidos_envio (
-id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-productos jsonb NOT NULL,
-cajero_id text,
-caja text,
-fecha text NOT NULL,
-cliente text,
-celular text,
-total numeric NOT NULL,
-costo_envio numeric DEFAULT 0,
-tipo_pago text,
-created_at timestamp with time zone DEFAULT now()
-);
-
--- =========================
--- TABLA CON FOREIGN KEY
--- =========================
-CREATE TABLE public.cai_facturas (
-id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-cai text NOT NULL,
-rango_desde integer NOT NULL,
-rango_hasta integer NOT NULL,
-caja_asignada text NOT NULL,
-cajero_id uuid NOT NULL,
-creado_en timestamp with time zone DEFAULT now(),
-CONSTRAINT cai_facturas_cajero_id_fkey
-FOREIGN KEY (cajero_id)
-REFERENCES public.usuarios(id)
-);
-
-
-
--- Script para modificar la tabla de pagos y que funcione con el nuevo PagoModal
--- Ejecutar este script en orden
-
--- 1. Agregar columnas nuevas necesarias
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS banco VARCHAR(100);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS autorizador VARCHAR(100);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS usd_monto NUMERIC(12,2);
-
--- 2. Modificar tipo para incluir 'dolares' si es necesario
--- Nota: Si 'tipo' es ENUM, necesitarás recrear el tipo o usar CHECK constraint
--- Si es VARCHAR, asegúrate de que tenga espacio suficiente
 ALTER TABLE pagos ALTER COLUMN tipo TYPE VARCHAR(20);
 
--- 3. Agregar índices para mejorar rendimiento
 CREATE INDEX IF NOT EXISTS idx_pagos_tipo ON pagos(tipo);
 CREATE INDEX IF NOT EXISTS idx_pagos_fecha_hora ON pagos(fecha_hora);
 
--- 4. Agregar comentarios a las columnas para documentación
 COMMENT ON COLUMN pagos.tipo IS 'Tipo de pago: efectivo, tarjeta, transferencia, dolares';
 COMMENT ON COLUMN pagos.monto IS 'Monto del pago en Lempiras (HNL)';
 COMMENT ON COLUMN pagos.usd_monto IS 'Monto en dólares si tipo=dolares';
@@ -262,114 +244,104 @@ COMMENT ON COLUMN pagos.autorizador IS 'Código de autorizador para pagos con ta
 COMMENT ON COLUMN pagos.referencia IS 'Número de referencia para transferencias';
 COMMENT ON COLUMN pagos.fecha_hora IS 'Fecha y hora del registro del pago';
 
--- 5. Verificar la estructura final
-SELECT 
-    column_name, 
-    data_type, 
-    character_maximum_length,
-    is_nullable
-FROM information_schema.columns 
-WHERE table_name = 'pagos'
-ORDER BY ordinal_position;
+-- =========================
+-- NORMALIZAR TIPOS DE PAGO
+-- =========================
+UPDATE pagos SET tipo = 'efectivo' WHERE tipo = 'Efectivo';
+UPDATE pagos SET tipo = 'tarjeta' WHERE tipo = 'Tarjeta';
+UPDATE pagos SET tipo = 'transferencia' WHERE tipo = 'Transferencia';
+UPDATE pagos SET tipo = 'dolares' WHERE tipo = 'Dolares';
 
-
--- Script para corregir tipos de pagos que están en mayúsculas a minúsculas
--- Ejecutar este script una sola vez para normalizar los datos existentes
-
--- Actualizar Efectivo -> efectivo
-UPDATE pagos 
-SET tipo = 'efectivo' 
-WHERE tipo = 'Efectivo';
-
--- Actualizar Tarjeta -> tarjeta
-UPDATE pagos 
-SET tipo = 'tarjeta' 
-WHERE tipo = 'Tarjeta';
-
--- Actualizar Transferencia -> transferencia
-UPDATE pagos 
-SET tipo = 'transferencia' 
-WHERE tipo = 'Transferencia';
-
--- Actualizar Dolares -> dolares
-UPDATE pagos 
-SET tipo = 'dolares' 
-WHERE tipo = 'Dolares';
-
--- Verificar los tipos existentes después de la actualización
-SELECT DISTINCT tipo, COUNT(*) as cantidad
-FROM pagos
-GROUP BY tipo
-ORDER BY tipo;
-
-
-
--- Agregar columnas de dólares a la tabla cierres
--- dolares_registrado: valor registrado manualmente por el cajero (calculado automático)
--- dolares_dia: valor del sistema (suma de usd_monto de pagos tipo dolares del día)
-
-ALTER TABLE public.cierres 
+-- =========================
+-- COLUMNAS USD EN CIERRES
+-- =========================
+ALTER TABLE public.cierres
 ADD COLUMN IF NOT EXISTS dolares_registrado NUMERIC(12,2) DEFAULT 0;
 
-ALTER TABLE public.cierres 
+ALTER TABLE public.cierres
 ADD COLUMN IF NOT EXISTS dolares_dia NUMERIC(12,2) DEFAULT 0;
 
-COMMENT ON COLUMN cierres.dolares_registrado IS 'Valor en USD calculado: suma de pagos dolares (monto) / precio_dolar';
-COMMENT ON COLUMN cierres.dolares_dia IS 'Suma de usd_monto de pagos tipo dolares del día para este cajero';
+COMMENT ON COLUMN cierres.dolares_registrado IS 'Valor en USD calculado';
+COMMENT ON COLUMN cierres.dolares_dia IS 'Suma de usd_monto de pagos tipo dolares del día';
+
+
+
+-- Crear tabla precio_dolar (una sola fila 'singleton')
+CREATE TABLE IF NOT EXISTS public.precio_dolar (
+  id text PRIMARY KEY DEFAULT 'singleton',
+  valor numeric(18,4) NOT NULL DEFAULT 0,
+  actualizado_en timestamptz DEFAULT now()
+);
+
+-- Insertar la fila singleton si no existe (valor inicial 0)
+INSERT INTO public.precio_dolar (id, valor)
+VALUES ('singleton', 0)
+ON CONFLICT (id) DO NOTHING;
 
 
 
 
-
-
-
-----------POLITICAS
-
-
+-- =========================
+-- POLÍTICAS
+-- =========================
 ALTER TABLE public.cai_facturas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 
--- INSERT
 CREATE POLICY "Permitir agregar cai_facturas"
 ON public.cai_facturas
 FOR INSERT
 TO public
 WITH CHECK (true);
 
--- UPDATE
 CREATE POLICY "Permitir editar cai_facturas"
 ON public.cai_facturas
 FOR UPDATE
 TO public
 USING (true);
 
--- DELETE
 CREATE POLICY "Permitir eliminar cai_facturas"
 ON public.cai_facturas
 FOR DELETE
 TO public
 USING (true);
 
--- SELECT
 CREATE POLICY "Permitir ver cai_facturas"
 ON public.cai_facturas
 FOR SELECT
 TO public
 USING (true);
 
-
-
--- INSERT en bucket inventario
 CREATE POLICY "Permitir insertar archivos en inventario"
 ON storage.objects
 FOR INSERT
 TO public
 WITH CHECK (bucket_id = 'inventario');
 
--- SELECT en bucket inventario
-CREATE POLICY "Permitir seleccionar archivos en inventario"
+CREATE POLICY "Subir archivos inventario"
+ON storage.objects
+FOR INSERT
+TO public
+WITH CHECK (bucket_id = 'inventario');
+
+CREATE POLICY "Leer archivos inventario"
 ON storage.objects
 FOR SELECT
 TO public
 USING (bucket_id = 'inventario');
+-- Script para agregar columna subcategoria a la tabla productos
+-- Ejecutar en Supabase SQL Editor
+
+-- Agregar columna subcategoria (opcional, solo para productos tipo comida)
+ALTER TABLE productos 
+ADD COLUMN IF NOT EXISTS subcategoria TEXT;
+
+-- Agregar comentario a la columna
+COMMENT ON COLUMN productos.subcategoria IS 'Subcategoría para productos de tipo comida: ROSTIZADOS, FRITOS, TACOS, ASADOS, etc.';
+
+-- Crear índice para mejorar búsquedas por subcategoría
+CREATE INDEX IF NOT EXISTS idx_productos_subcategoria ON productos(subcategoria) WHERE subcategoria IS NOT NULL;
+
+-- Verificar que se agregó correctamente
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'productos' AND column_name = 'subcategoria';

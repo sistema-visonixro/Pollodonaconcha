@@ -236,29 +236,165 @@ export default function ResultadosCajaView() {
               </h3>
               {/* Nuevo: tarjeta resumen por tipo para identificar dónde está la diferencia */}
               {cierres.length > 0 && (
-                <div style={{ marginBottom: 12, display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                  {cierres.slice(0,1).map((cierre, i) => {
-                    const efectivoDiff = ((parseFloat(cierre.efectivo_registrado) || 0) - (parseFloat(cierre.efectivo_dia) || 0)).toFixed(2);
-                    const tarjetaDiff = ((parseFloat(cierre.monto_tarjeta_registrado) || 0) - (parseFloat(cierre.monto_tarjeta_dia) || 0)).toFixed(2);
-                    const transDiff = ((parseFloat(cierre.transferencias_registradas) || 0) - (parseFloat(cierre.transferencias_dia) || 0)).toFixed(2);
-                    const dolaresDiff = ((parseFloat(cierre.dolares_registrado) || 0) - (parseFloat(cierre.dolares_dia) || 0)).toFixed(2);
+                <div
+                  style={{
+                    marginBottom: 12,
+                    display: "flex",
+                    gap: 8,
+                    justifyContent: "space-between",
+                  }}
+                >
+                  {cierres.slice(0, 1).map((cierre, i) => {
+                    const efectivoDiff = (
+                      (parseFloat(cierre.efectivo_registrado) || 0) -
+                      (parseFloat(cierre.efectivo_dia) || 0)
+                    ).toFixed(2);
+                    const tarjetaDiff = (
+                      (parseFloat(cierre.monto_tarjeta_registrado) || 0) -
+                      (parseFloat(cierre.monto_tarjeta_dia) || 0)
+                    ).toFixed(2);
+                    const transDiff = (
+                      (parseFloat(cierre.transferencias_registradas) || 0) -
+                      (parseFloat(cierre.transferencias_dia) || 0)
+                    ).toFixed(2);
+                    const dolaresDiff = (
+                      (parseFloat(cierre.dolares_registrado) || 0) -
+                      (parseFloat(cierre.dolares_dia) || 0)
+                    ).toFixed(2);
                     return (
-                      <div key={i} style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1976d2' }}>EFECTIVO</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: efectivoDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>L {efectivoDiff}</div>
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          width: "100%",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div
+                          style={{
+                            flex: 1,
+                            background: "#fff",
+                            padding: 12,
+                            borderRadius: 10,
+                            textAlign: "center",
+                            boxShadow: "0 2px 8px #00000010",
+                            minWidth: 100,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "#1976d2",
+                            }}
+                          >
+                            EFECTIVO
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color:
+                                efectivoDiff === "0.00" ? "#388e3c" : "#d32f2f",
+                            }}
+                          >
+                            L {efectivoDiff}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1976d2' }}>TARJETA</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: tarjetaDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>L {tarjetaDiff}</div>
+                        <div
+                          style={{
+                            flex: 1,
+                            background: "#fff",
+                            padding: 12,
+                            borderRadius: 10,
+                            textAlign: "center",
+                            boxShadow: "0 2px 8px #00000010",
+                            minWidth: 100,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "#1976d2",
+                            }}
+                          >
+                            TARJETA
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color:
+                                tarjetaDiff === "0.00" ? "#388e3c" : "#d32f2f",
+                            }}
+                          >
+                            L {tarjetaDiff}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1976d2' }}>TRANSFERENCIA</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: transDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>L {transDiff}</div>
+                        <div
+                          style={{
+                            flex: 1,
+                            background: "#fff",
+                            padding: 12,
+                            borderRadius: 10,
+                            textAlign: "center",
+                            boxShadow: "0 2px 8px #00000010",
+                            minWidth: 100,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "#1976d2",
+                            }}
+                          >
+                            TRANSFERENCIA
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color:
+                                transDiff === "0.00" ? "#388e3c" : "#d32f2f",
+                            }}
+                          >
+                            L {transDiff}
+                          </div>
                         </div>
-                        <div style={{ flex: 1, background: '#fff', padding: 12, borderRadius: 10, textAlign: 'center', boxShadow: '0 2px 8px #00000010', minWidth: 100 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#f57c00' }}>DÓLARES</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: dolaresDiff === '0.00' ? '#388e3c' : '#d32f2f' }}>$ {dolaresDiff}</div>
+                        <div
+                          style={{
+                            flex: 1,
+                            background: "#fff",
+                            padding: 12,
+                            borderRadius: 10,
+                            textAlign: "center",
+                            boxShadow: "0 2px 8px #00000010",
+                            minWidth: 100,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "#f57c00",
+                            }}
+                          >
+                            DÓLARES
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color:
+                                dolaresDiff === "0.00" ? "#388e3c" : "#d32f2f",
+                            }}
+                          >
+                            $ {dolaresDiff}
+                          </div>
                         </div>
                       </div>
                     );
@@ -285,32 +421,138 @@ export default function ResultadosCajaView() {
                     // Mostrar todos los campos relevantes del cierre
                     return (
                       <div key={idx} style={{ marginBottom: 24 }}>
-                        <table style={{ width: "100%", background: "#fffde7", borderRadius: 8, marginBottom: 8, fontSize: 15 }}>
+                        <table
+                          style={{
+                            width: "100%",
+                            background: "#fffde7",
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            fontSize: 15,
+                          }}
+                        >
                           <tbody>
-                            <tr><td><b>Fondo Fijo Registrado:</b></td><td>{cierre.fondo_fijo_registrado}</td></tr>
-                            <tr><td><b>Fondo Fijo:</b></td><td>{cierre.fondo_fijo}</td></tr>
-                            <tr><td><b>Efectivo Registrado:</b></td><td>{cierre.efectivo_registrado}</td></tr>
-                            <tr><td><b>Efectivo Día:</b></td><td>{cierre.efectivo_dia}</td></tr>
-                            <tr><td><b>Monto Tarjeta Registrado:</b></td><td>{cierre.monto_tarjeta_registrado}</td></tr>
-                            <tr><td><b>Monto Tarjeta Día:</b></td><td>{cierre.monto_tarjeta_dia}</td></tr>
-                            <tr><td><b>Transferencias Registradas:</b></td><td>{cierre.transferencias_registradas}</td></tr>
-                            <tr><td><b>Transferencias Día:</b></td><td>{cierre.transferencias_dia}</td></tr>
-                            <tr><td><b>Dólares Registrado (USD):</b></td><td>{cierre.dolares_registrado || 0}</td></tr>
-                            <tr><td><b>Dólares Día (USD):</b></td><td>{cierre.dolares_dia || 0}</td></tr>
-                            <tr><td><b>Diferencia:</b></td><td>{cierre.diferencia}</td></tr>
-                            <tr><td><b>Observación:</b></td><td>{cierre.observacion || '-'}</td></tr>
+                            <tr>
+                              <td>
+                                <b>Fondo Fijo Registrado:</b>
+                              </td>
+                              <td>{cierre.fondo_fijo_registrado}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Fondo Fijo:</b>
+                              </td>
+                              <td>{cierre.fondo_fijo}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Efectivo Registrado:</b>
+                              </td>
+                              <td>{cierre.efectivo_registrado}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Efectivo Día:</b>
+                              </td>
+                              <td>{cierre.efectivo_dia}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Monto Tarjeta Registrado:</b>
+                              </td>
+                              <td>{cierre.monto_tarjeta_registrado}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Monto Tarjeta Día:</b>
+                              </td>
+                              <td>{cierre.monto_tarjeta_dia}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Transferencias Registradas:</b>
+                              </td>
+                              <td>{cierre.transferencias_registradas}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Transferencias Día:</b>
+                              </td>
+                              <td>{cierre.transferencias_dia}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Dólares Registrado (USD):</b>
+                              </td>
+                              <td>{cierre.dolares_registrado || 0}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Dólares Día (USD):</b>
+                              </td>
+                              <td>{cierre.dolares_dia || 0}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Diferencia:</b>
+                              </td>
+                              <td>{cierre.diferencia}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <b>Observación:</b>
+                              </td>
+                              <td>{cierre.observacion || "-"}</td>
+                            </tr>
                           </tbody>
                         </table>
                         {/* Cálculos de diferencias */}
-                        <div><b>FONDO FIJO:</b> {((parseFloat(cierre.fondo_fijo_registrado) || 0) - (parseFloat(cierre.fondo_fijo) || 0)).toFixed(2)}</div>
-                        <div><b>EFECTIVO:</b> {((parseFloat(cierre.efectivo_registrado) || 0) - (parseFloat(cierre.efectivo_dia) || 0)).toFixed(2)}</div>
-                        <div><b>TARJETA:</b> {((parseFloat(cierre.monto_tarjeta_registrado) || 0) - (parseFloat(cierre.monto_tarjeta_dia) || 0)).toFixed(2)}</div>
-                        <div><b>TRANSFERENCIA:</b> {((parseFloat(cierre.transferencias_registradas) || 0) - (parseFloat(cierre.transferencias_dia) || 0)).toFixed(2)}</div>
-                        <div><b>DÓLARES (USD):</b> {((parseFloat(cierre.dolares_registrado) || 0) - (parseFloat(cierre.dolares_dia) || 0)).toFixed(2)}</div>
+                        <div>
+                          <b>FONDO FIJO:</b>{" "}
+                          {(
+                            (parseFloat(cierre.fondo_fijo_registrado) || 0) -
+                            (parseFloat(cierre.fondo_fijo) || 0)
+                          ).toFixed(2)}
+                        </div>
+                        <div>
+                          <b>EFECTIVO:</b>{" "}
+                          {(
+                            (parseFloat(cierre.efectivo_registrado) || 0) -
+                            (parseFloat(cierre.efectivo_dia) || 0)
+                          ).toFixed(2)}
+                        </div>
+                        <div>
+                          <b>TARJETA:</b>{" "}
+                          {(
+                            (parseFloat(cierre.monto_tarjeta_registrado) || 0) -
+                            (parseFloat(cierre.monto_tarjeta_dia) || 0)
+                          ).toFixed(2)}
+                        </div>
+                        <div>
+                          <b>TRANSFERENCIA:</b>{" "}
+                          {(
+                            (parseFloat(cierre.transferencias_registradas) ||
+                              0) - (parseFloat(cierre.transferencias_dia) || 0)
+                          ).toFixed(2)}
+                        </div>
+                        <div>
+                          <b>DÓLARES (USD):</b>{" "}
+                          {(
+                            (parseFloat(cierre.dolares_registrado) || 0) -
+                            (parseFloat(cierre.dolares_dia) || 0)
+                          ).toFixed(2)}
+                        </div>
                         {/* Si existe diferencia aquí mostramos una indicación; la validación/guardado
                             se realiza en el bloque de 'TOTAL' más abajo para evitar duplicados del formulario. */}
                         {parseFloat(cierre.diferencia) !== 0 && (
-                          <div style={{ color: '#d32f2f', fontWeight: 700, marginTop: 8 }}>Diferencia pendiente</div>
+                          <div
+                            style={{
+                              color: "#d32f2f",
+                              fontWeight: 700,
+                              marginTop: 8,
+                            }}
+                          >
+                            Diferencia pendiente
+                          </div>
                         )}
                       </div>
                     );
@@ -339,8 +581,7 @@ export default function ResultadosCajaView() {
                           parseFloat(cierre.transferencias_dia) || 0;
                         const dolaresRegistrado =
                           parseFloat(cierre.dolares_registrado) || 0;
-                        const dolaresDia =
-                          parseFloat(cierre.dolares_dia) || 0;
+                        const dolaresDia = parseFloat(cierre.dolares_dia) || 0;
                         const diferenciaFondoFijo =
                           fondoFijoRegistrado - fondoFijo;
                         const diferenciaEfectivo =
@@ -378,16 +619,14 @@ export default function ResultadosCajaView() {
                         parseFloat(cierre.transferencias_dia) || 0;
                       const dolaresRegistrado =
                         parseFloat(cierre.dolares_registrado) || 0;
-                      const dolaresDia =
-                        parseFloat(cierre.dolares_dia) || 0;
+                      const dolaresDia = parseFloat(cierre.dolares_dia) || 0;
                       const diferenciaEfectivo =
                         efectivoRegistrado - efectivoDia;
                       const diferenciaTarjeta =
                         montoTarjetaRegistrado - montoTarjetaDia;
                       const diferenciaTransferencia =
                         transferenciasRegistradas - transferenciasDia;
-                      const diferenciaDolares =
-                        dolaresRegistrado - dolaresDia;
+                      const diferenciaDolares = dolaresRegistrado - dolaresDia;
                       total +=
                         diferenciaEfectivo +
                         diferenciaTarjeta +
