@@ -77,7 +77,7 @@ export default function PuntoDeVentaView({
     setResumenLoading(true);
     try {
       // Buscar la fecha de apertura del día actual para filtrar desde ese momento
-      const { start: dayStart, end: dayEnd, day } = getLocalDayRange();
+      const { end: dayEnd, day } = getLocalDayRange();
 
       // Obtener caja asignada
       let cajaAsignada = caiInfo?.caja_asignada;
@@ -100,11 +100,18 @@ export default function PuntoDeVentaView({
         .eq("estado", "APERTURA")
         .order("fecha", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      // Si hay apertura, usar su fecha EXACTA (con hora, minutos, segundos) como inicio
-      // Si no hay apertura, usar inicio del día
-      const start = aperturaActual ? aperturaActual.fecha : dayStart;
+      // Si no hay apertura registrada, mostrar advertencia y salir
+      if (!aperturaActual) {
+        setResumenLoading(false);
+        alert("No hay apertura de caja registrada. Por favor, registra primero una apertura.");
+        setShowResumen(false);
+        return;
+      }
+
+      // Usar la fecha EXACTA de apertura (con hora, minutos, segundos) como inicio
+      const start = aperturaActual.fecha;
       const end = dayEnd;
 
       console.log("Resumen de caja - Rango:", {
@@ -152,14 +159,14 @@ export default function PuntoDeVentaView({
           .eq("cajero_id", usuarioActual?.id)
           .gte("fecha_hora", start)
           .lte("fecha_hora", end),
-        // Obtener gastos del día: la tabla 'gastos' tiene columna DATE, usar igualdad por día
-        // Filtrar por cajero_id y caja asignada para que el resumen sea por este cajero/caja
+        // Obtener gastos: ahora usa fecha_hora (timestamp) para filtrar desde apertura exacta
         (async () => {
           if (!cajaAsignada) return Promise.resolve({ data: [] });
           return supabase
             .from("gastos")
             .select("monto")
-            .eq("fecha", day)
+            .gte("fecha_hora", start)
+            .lte("fecha_hora", end)
             .eq("cajero_id", usuarioActual?.id)
             .eq("caja", cajaAsignada);
         })(),
@@ -655,9 +662,13 @@ export default function PuntoDeVentaView({
         cajaAsignada = caiData?.caja_asignada || "";
       }
 
+      // Obtener timestamp actual en formato ISO para fecha_hora
+      const fechaHora = formatToHondurasLocal(new Date());
+      
       const { error } = await supabase.from("gastos").insert([
         {
           fecha,
+          fecha_hora: fechaHora,
           monto: montoNum,
           motivo: motivoCompleto,
           cajero_id: usuarioActual?.id,

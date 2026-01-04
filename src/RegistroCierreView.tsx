@@ -59,28 +59,39 @@ export default function RegistroCierreView({
 
   // Calcular valores automáticos
   async function obtenerValoresAutomaticos() {
-    const { start: dayStart, end: dayEnd, day } = getLocalDayRange();
+    const { end: dayEnd } = getLocalDayRange();
 
-    // Buscar apertura del día con estado='APERTURA' o 'CIERRE'
-    const { data: aperturas } = await supabase
+    // Buscar la última apertura (estado='APERTURA') sin importar el día
+    // Esta será la apertura del turno actual
+    const { data: aperturaActual } = await supabase
       .from("cierres")
       .select("fondo_fijo_registrado, fecha, estado")
       .eq("cajero_id", usuarioActual?.id)
       .eq("caja", caja)
-      .gte("fecha", dayStart)
-      .lte("fecha", dayEnd)
-      .in("estado", ["APERTURA", "CIERRE"])
-      .order("fecha", { ascending: true })
-      .limit(1);
+      .eq("estado", "APERTURA")
+      .order("fecha", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    const fondoFijoDia =
-      aperturas && aperturas.length > 0
-        ? parseFloat(aperturas[0].fondo_fijo_registrado)
-        : 0;
+    // Si no hay apertura registrada, establecer valores en 0
+    if (!aperturaActual) {
+      setEfectivoSistema(0);
+      setTarjetaSistema(0);
+      setTransferenciasSistema(0);
+      setDolaresSistema(0);
+      return {
+        fondoFijoDia: 0,
+        efectivoDia: 0,
+        tarjetaDia: 0,
+        transferenciasDia: 0,
+        dolaresDia: 0,
+      };
+    }
 
-    // Si hay apertura, usar su fecha como inicio; si no, usar inicio del día
-    const desde =
-      aperturas && aperturas.length > 0 ? aperturas[0].fecha : dayStart;
+    const fondoFijoDia = parseFloat(aperturaActual.fondo_fijo_registrado || "0");
+
+    // Usar la fecha EXACTA de apertura (con hora, minutos, segundos) como inicio
+    const desde = aperturaActual.fecha;
     const hasta = dayEnd;
 
     console.debug("Rango de cierre - desde apertura:", desde, "hasta:", hasta);
@@ -112,14 +123,14 @@ export default function RegistroCierreView({
       : 0;
     console.debug("efectivoDia computed:", efectivoDia);
 
-    // Obtener gastos del día (la tabla 'gastos' usa columna DATE)
-    // Filtrar por cajero_id y caja para que solo se sumen los gastos de este cajero/caja
+    // Obtener gastos: ahora usa fecha_hora (timestamp) para filtrar desde apertura exacta
     let gastosDia = 0;
     try {
       const { data: gastosData } = await supabase
         .from("gastos")
         .select("monto")
-        .eq("fecha", day)
+        .gte("fecha_hora", desde)
+        .lte("fecha_hora", hasta)
         .eq("cajero_id", usuarioActual?.id)
         .eq("caja", caja);
       if (gastosData && Array.isArray(gastosData)) {
@@ -129,7 +140,7 @@ export default function RegistroCierreView({
         );
       }
     } catch (e) {
-      console.warn("No se pudieron obtener gastos del día:", e);
+      console.warn("No se pudieron obtener gastos:", e);
       gastosDia = 0;
     }
     console.debug("gastosDia computed:", gastosDia);
@@ -533,7 +544,7 @@ export default function RegistroCierreView({
       } else {
         // Imprimir reporte si es CIERRE
         if (registro.tipo_registro === "cierre") {
-          printCierreReport({ ...registro, id: registroId }, gastosDia);
+          printCierreReport({ ...registro, id: registroId }, gastosDia || 0);
         }
 
         // Enviar datos al script de Google (fire-and-forget)
