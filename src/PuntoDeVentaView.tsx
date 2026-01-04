@@ -90,21 +90,21 @@ export default function PuntoDeVentaView({
         cajaAsignada = caiData?.caja_asignada || "";
       }
 
-      // Buscar apertura del día con estado='APERTURA' o 'CIERRE'
-      const { data: aperturaDelDia } = await supabase
+      // Buscar la última apertura (estado='APERTURA') sin importar el día
+      // Esta será la apertura del turno actual
+      const { data: aperturaActual } = await supabase
         .from("cierres")
         .select("fecha, estado")
         .eq("cajero_id", usuarioActual?.id)
         .eq("caja", cajaAsignada)
-        .gte("fecha", dayStart)
-        .lte("fecha", dayEnd)
-        .in("estado", ["APERTURA", "CIERRE"])
-        .order("fecha", { ascending: true })
+        .eq("estado", "APERTURA")
+        .order("fecha", { ascending: false })
         .limit(1)
         .single();
 
-      // Si hay apertura, usar su fecha como inicio; si no, usar inicio del día
-      const start = aperturaDelDia ? aperturaDelDia.fecha : dayStart;
+      // Si hay apertura, usar su fecha EXACTA (con hora, minutos, segundos) como inicio
+      // Si no hay apertura, usar inicio del día
+      const start = aperturaActual ? aperturaActual.fecha : dayStart;
       const end = dayEnd;
 
       console.log("Resumen de caja - Rango:", {
@@ -112,7 +112,9 @@ export default function PuntoDeVentaView({
         end,
         day,
         cajeroId: usuarioActual?.id,
-        usandoFechaApertura: !!aperturaDelDia,
+        cajaAsignada,
+        usandoFechaApertura: !!aperturaActual,
+        fechaApertura: aperturaActual?.fecha,
       });
 
       const [
