@@ -36,6 +36,8 @@ export default function ResultadosView({
   const [balance, setBalance] = useState(0);
   const [ventasPorDia, setVentasPorDia] = useState<any[]>([]);
   const [mesFiltro, setMesFiltro] = useState("");
+  const [cajeros, setCajeros] = useState<any[]>([]);
+  const [cajeroFiltro, setCajeroFiltro] = useState("");
   // Obtener usuario actual de localStorage
   const usuarioActual = (() => {
     try {
@@ -48,7 +50,20 @@ export default function ResultadosView({
 
   useEffect(() => {
     fetchDatos();
+    fetchCajeros();
   }, [desde, hasta]);
+
+  async function fetchCajeros() {
+    try {
+      const { data } = await supabase
+        .from("usuarios")
+        .select("id, nombre")
+        .order("nombre");
+      setCajeros(data || []);
+    } catch (error) {
+      console.error("Error fetching cajeros:", error);
+    }
+  }
 
   // Si el usuario no es admin, mostrar mensaje y bloquear acceso
   if (
@@ -97,6 +112,10 @@ export default function ResultadosView({
           .gte("fecha_hora", desdeInicio)
           .lte("fecha_hora", hastaFin)
           .order("fecha_hora", { ascending: false });
+
+        if (cajeroFiltro) {
+          factQuery = factQuery.eq("cajero_id", cajeroFiltro);
+        }
 
         // Para tablas que usan campo "fecha" (sin hora) mantener comparación por día
         gastQuery = supabase
@@ -393,6 +412,122 @@ export default function ResultadosView({
         });
         html += `<tr><th style="text-align:right">Total Pagos (raw)</th><th>L ${totalPagosRawFmt}</th></tr>`;
       }
+      html += `</tbody></table></div>`;
+
+      // Sección VALOR DE VENTA POR CATEGORÍA
+      html += `<div class="section"><h2>💰 Valor de Venta por Categoría</h2>`;
+      
+      // Calcular ventas por categoría y subcategoría consultando tabla productos
+      const ventasPorCategoria: { [key: string]: number } = {
+        comida: 0,
+        bebida: 0,
+        complemento: 0
+      };
+      const ventasPorSubcategoria: { [key: string]: number } = {};
+
+      // Obtener todos los IDs de productos únicos
+      const productosIds = new Set<string>();
+      factData.forEach((f: any) => {
+        if (f.productos) {
+          try {
+            // Parsear el string JSON de productos
+            const productosArray = typeof f.productos === 'string' 
+              ? JSON.parse(f.productos) 
+              : f.productos;
+            
+            if (Array.isArray(productosArray)) {
+              productosArray.forEach((prod: any) => {
+                if (prod.id) productosIds.add(prod.id);
+              });
+            }
+          } catch (e) {
+            console.error("Error parseando productos:", e);
+          }
+        }
+      });
+
+      // Consultar información de productos desde la base de datos
+      const { data: productosInfo } = await supabase
+        .from("productos")
+        .select("id, tipo, subcategoria")
+        .in("id", Array.from(productosIds));
+
+      // Crear mapa de productos para búsqueda rápida
+      const productosMap = new Map();
+      if (productosInfo) {
+        productosInfo.forEach((p: any) => {
+          productosMap.set(p.id, { tipo: p.tipo, subcategoria: p.subcategoria });
+        });
+      }
+
+      // Calcular ventas usando datos reales de productos
+      factData.forEach((f: any) => {
+        if (f.productos) {
+          try {
+            // Parsear el string JSON de productos
+            const productosArray = typeof f.productos === 'string' 
+              ? JSON.parse(f.productos) 
+              : f.productos;
+            
+            if (Array.isArray(productosArray)) {
+              productosArray.forEach((prod: any) => {
+                const productoInfo = productosMap.get(prod.id);
+                if (productoInfo) {
+                  const tipo = productoInfo.tipo || 'comida';
+                  const cantidad = prod.cantidad || 1;
+                  const precio = prod.precio || 0;
+                  const total = precio * cantidad;
+                  
+                  // Sumar a categoría principal
+                  if (ventasPorCategoria[tipo] !== undefined) {
+                    ventasPorCategoria[tipo] += total;
+                  }
+                  
+                  // Si es comida y tiene subcategoría, sumar a subcategoría
+                  if (tipo === 'comida' && productoInfo.subcategoria) {
+                    const subcat = productoInfo.subcategoria;
+                    ventasPorSubcategoria[subcat] = (ventasPorSubcategoria[subcat] || 0) + total;
+                  }
+                }
+              });
+            }
+          } catch (e) {
+            console.error("Error parseando productos para cálculo:", e);
+          }
+        }
+      });
+
+      // Tabla de subcategorías de COMIDA
+      const subcategorias = Object.keys(ventasPorSubcategoria).sort();
+      if (subcategorias.length > 0) {
+        html += `<h3 style="margin-top:16px;color:#111;">Comidas por Subcategoría</h3>`;
+        html += `<table><thead><tr><th>Subcategoría</th><th>Total Ventas</th></tr></thead><tbody>`;
+        subcategorias.forEach((subcat) => {
+          const total = ventasPorSubcategoria[subcat];
+          const totalFmt = total.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+          html += `<tr><td>${subcat}</td><td>L ${totalFmt}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+
+      // Tabla de categorías principales
+      html += `<h3 style="margin-top:16px;color:#111;">Total por Categoría</h3>`;
+      html += `<table><thead><tr><th>Categoría</th><th>Total Ventas</th></tr></thead><tbody>`;
+      const categorias = [
+        { key: 'comida', label: '🍗 Comidas' },
+        { key: 'complemento', label: '🍟 Complementos' },
+        { key: 'bebida', label: '🥤 Bebidas' }
+      ];
+      categorias.forEach(({ key, label }) => {
+        const total = ventasPorCategoria[key] || 0;
+        if (total > 0) {
+          const totalFmt = total.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+          html += `<tr><td>${label}</td><td>L ${totalFmt}</td></tr>`;
+        }
+      });
+      const totalCategorias = Object.values(ventasPorCategoria).reduce((sum, val) => sum + val, 0);
+      const totalCategoriasFmt = totalCategorias.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+      html += `<tr><th style="text-align:right">Total General</th><th>L ${totalCategoriasFmt}</th></tr>`;
       html += `</tbody></table></div>`;
 
       html += `<div class="section"><h2>Historial de cierres (sin aclarar)</h2>`;
@@ -937,6 +1072,21 @@ export default function ResultadosView({
               {mesesDisponibles.map((mes) => (
                 <option key={mes} value={mes}>
                   {mes}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>👤 Cajero:</label>
+            <select
+              value={cajeroFiltro}
+              onChange={(e) => setCajeroFiltro(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Todos</option>
+              {cajeros.map((cajero) => (
+                <option key={cajero.id} value={cajero.id}>
+                  {cajero.nombre}
                 </option>
               ))}
             </select>
