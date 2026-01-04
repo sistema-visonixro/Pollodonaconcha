@@ -279,52 +279,8 @@ export default function PuntoDeVentaView({
       return "lite";
     }
   });
-  const [appVersion, setAppVersion] = useState<string>("");
 
-  useEffect(() => {
-    let canceled = false;
-    (async () => {
-      try {
-        const res = await fetch("/version.json", { cache: "no-store" });
-        if (!res.ok) return;
-        const j = await res.json();
-        if (canceled) return;
-        setAppVersion(String(j.version || ""));
-      } catch (e) {
-        // ignore
-      }
-    })();
-    return () => {
-      canceled = true;
-    };
-  }, []);
-
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
-  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [showCerrarSesionModal, setShowCerrarSesionModal] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: any) => {
-      setCheckingUpdate(false);
-      const d = e?.detail || {};
-      if (d.updated) {
-        // there's an available update: main.tsx will show modal, but show a small note as well
-        setUpdateMessage(`Actualización disponible: ${d.availableVersion}`);
-      } else {
-        setUpdateMessage("El sistema está actualizado");
-        setTimeout(() => setUpdateMessage(null), 3000);
-      }
-    };
-    window.addEventListener(
-      "app:check-update-result",
-      handler as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        "app:check-update-result",
-        handler as EventListener
-      );
-  }, []);
 
   // Cargar datos del negocio
   const { datos: datosNegocio } = useDatosNegocio();
@@ -4434,91 +4390,27 @@ export default function PuntoDeVentaView({
       {/* Modal para requerir factura */}
       {/* Eliminado el modal de confirmación de factura */}
 
-      {/* Versión de la aplicación (texto pequeño en verde abajo) */}
-      {appVersion && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 10,
-            left: 18,
-            color: "#43a047",
-            fontSize: 12,
-            fontWeight: 700,
-            zIndex: 12000,
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-          }}
-        >
-          <span>Versión: {appVersion}</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              onClick={() => {
-                setCheckingUpdate(true);
-                setUpdateMessage(null);
-                window.dispatchEvent(new CustomEvent("app:check-update"));
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#2e7d32",
-                fontSize: 12,
-                textDecoration: "underline",
-                cursor: "pointer",
-                padding: 0,
-              }}
-              title="Buscar actualización ahora"
-            >
-              Buscar actualización
-            </button>
-            {checkingUpdate && (
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  border: "2px solid rgba(46,125,50,0.2)",
-                  borderTop: "2px solid #2e7d32",
-                  borderRadius: "50%",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-            )}
-            {updateMessage && (
-              <div
-                style={{
-                  background: "#e8f5e9",
-                  color: "#2e7d32",
-                  padding: "4px 8px",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                {updateMessage}
-              </div>
-            )}
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-          </div>
-
-          {/* Botón Cerrar Sesión */}
-          <button
-            onClick={() => setShowCerrarSesionModal(true)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#d32f2f",
-              fontSize: 12,
-              textDecoration: "underline",
-              cursor: "pointer",
-              padding: 0,
-              marginLeft: 8,
-            }}
-            title="Cerrar sesión"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      )}
+      {/* Botón Cerrar Sesión - fijo abajo a la derecha */}
+      <button
+        onClick={() => setShowCerrarSesionModal(true)}
+        style={{
+          position: "fixed",
+          bottom: 10,
+          right: 18,
+          background: "transparent",
+          border: "none",
+          color: "#d32f2f",
+          fontSize: 12,
+          textDecoration: "underline",
+          cursor: "pointer",
+          padding: 0,
+          zIndex: 12000,
+          fontWeight: 700,
+        }}
+        title="Cerrar sesión"
+      >
+        Cerrar Sesión
+      </button>
 
       {/* Modal de confirmación para cerrar sesión */}
       {showCerrarSesionModal && (

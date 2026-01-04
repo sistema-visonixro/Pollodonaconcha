@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getBackgroundStyle } from "./assets/images";
 import { useDatosNegocio } from "./useDatosNegocio";
 
@@ -13,6 +13,51 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+
+  // Version checker
+  const [appVersion, setAppVersion] = useState<string>("");
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      try {
+        const res = await fetch("/version.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (canceled) return;
+        setAppVersion(String(j.version || ""));
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      setCheckingUpdate(false);
+      const d = e?.detail || {};
+      if (d.updated) {
+        setUpdateMessage(`Actualización disponible: ${d.availableVersion}`);
+      } else {
+        setUpdateMessage("El sistema está actualizado");
+        setTimeout(() => setUpdateMessage(null), 3000);
+      }
+    };
+    window.addEventListener(
+      "app:check-update-result",
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "app:check-update-result",
+        handler as EventListener
+      );
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,6 +295,72 @@ export default function Login({ onLogin }: LoginProps) {
               <p style={{ color: "red", textAlign: "center" }}>{error}</p>
             )}
           </form>
+        </div>
+      )}
+
+      {/* Componente de versión y actualización */}
+      {appVersion && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 10,
+            left: 18,
+            color: "#43a047",
+            fontSize: 12,
+            fontWeight: 700,
+            zIndex: 12000,
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+          }}
+        >
+          <span>Versión: {appVersion}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => {
+                setCheckingUpdate(true);
+                setUpdateMessage(null);
+                window.dispatchEvent(new CustomEvent("app:check-update"));
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#2e7d32",
+                fontSize: 12,
+                textDecoration: "underline",
+                cursor: "pointer",
+                padding: 0,
+              }}
+              title="Buscar actualización ahora"
+            >
+              Buscar actualización
+            </button>
+            {checkingUpdate && (
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  border: "2px solid rgba(46,125,50,0.2)",
+                  borderTop: "2px solid #2e7d32",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite",
+                }}
+              />
+            )}
+          </div>
+          {updateMessage && (
+            <span
+              style={{
+                fontSize: 11,
+                color: updateMessage.includes("disponible")
+                  ? "#d32f2f"
+                  : "#2e7d32",
+                fontStyle: "italic",
+              }}
+            >
+              {updateMessage}
+            </span>
+          )}
         </div>
       )}
     </div>
