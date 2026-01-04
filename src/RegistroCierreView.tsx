@@ -11,63 +11,47 @@ interface RegistroCierreViewProps {
   usuarioActual: UsuarioActual;
   caja: string;
   onCierreGuardado?: () => void;
+  onBack?: () => void;
 }
 
 export default function RegistroCierreView({
   usuarioActual,
   caja,
   onCierreGuardado,
+  onBack,
 }: RegistroCierreViewProps) {
   // Cargar datos del negocio
   const { datos: datosNegocio } = useDatosNegocio();
 
-  const [fondoFijo, setFondoFijo] = useState("");
   const [efectivo, setEfectivo] = useState("");
   const [tarjeta, setTarjeta] = useState("");
   const [transferencias, setTransferencias] = useState("");
   const [dolares, setDolares] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  // Gaveta eliminada: ya no usamos drawerLoading/drawerMessage
-  const [aperturaLoading, setAperturaLoading] = useState(false);
-  const [aperturaExisteHoy, setAperturaExisteHoy] = useState(false);
 
-  // Precargar fondo fijo desde la APERTURA de hoy si existe
+  // Estados para mostrar valores del sistema en el resumen
+  const [efectivoSistema, setEfectivoSistema] = useState(0);
+  const [tarjetaSistema, setTarjetaSistema] = useState(0);
+  const [transferenciasSistema, setTransferenciasSistema] = useState(0);
+  const [dolaresSistema, setDolaresSistema] = useState(0);
+  const [guardando, setGuardando] = useState(false);
+
+  // Cargar valores del sistema al montar la vista
   useEffect(() => {
     let mounted = true;
-    async function loadApertura() {
+    async function cargarResumen() {
       if (!usuarioActual || !usuarioActual.id || !caja) return;
-      setAperturaLoading(true);
+      setLoading(true);
       try {
-        const { start, end } = getLocalDayRange();
-        const { data: aperturas, error } = await supabase
-          .from("cierres")
-          .select("fondo_fijo_registrado")
-          .eq("tipo_registro", "apertura")
-          .eq("cajero_id", usuarioActual.id)
-          .eq("caja", caja)
-          .gte("fecha", start)
-          .lte("fecha", end)
-          .order("fecha", { ascending: true });
-        if (!mounted) return;
-        if (error) {
-          console.warn("Error buscando apertura de hoy:", error);
-        } else if (aperturas && aperturas.length > 0) {
-          setAperturaExisteHoy(true);
-          const val = aperturas[0].fondo_fijo_registrado;
-          if (val !== undefined && val !== null && fondoFijo === "") {
-            setFondoFijo(String(val));
-          }
-        } else {
-          setAperturaExisteHoy(false);
-        }
+        await obtenerValoresAutomaticos();
       } catch (err) {
-        console.error("Error cargando apertura de hoy:", err);
+        console.error("Error cargando resumen:", err);
       } finally {
-        if (mounted) setAperturaLoading(false);
+        if (mounted) setLoading(false);
       }
     }
-    loadApertura();
+    cargarResumen();
     return () => {
       mounted = false;
     };
@@ -75,29 +59,31 @@ export default function RegistroCierreView({
 
   // Calcular valores automáticos
   async function obtenerValoresAutomaticos() {
-    const { start, end, day } = getLocalDayRange();
-    // Fondo fijo del día (apertura)
+    const { start: dayStart, end: dayEnd, day } = getLocalDayRange();
+
+    // Buscar apertura del día con estado='APERTURA' o 'CIERRE'
     const { data: aperturas } = await supabase
       .from("cierres")
-      .select("fondo_fijo_registrado")
-      .eq("tipo_registro", "apertura")
-      // mantener compatibilidad: priorizar cajero_id si existe, sino filtrar por nombre
-      .or(
-        usuarioActual?.id
-          ? `cajero_id.eq.${usuarioActual.id}`
-          : `cajero.eq.${usuarioActual?.nombre}`
-      )
+      .select("fondo_fijo_registrado, fecha, estado")
+      .eq("cajero_id", usuarioActual?.id)
       .eq("caja", caja)
-      .gte("fecha", start)
-      .lte("fecha", end);
+      .gte("fecha", dayStart)
+      .lte("fecha", dayEnd)
+      .in("estado", ["APERTURA", "CIERRE"])
+      .order("fecha", { ascending: true })
+      .limit(1);
+
     const fondoFijoDia =
       aperturas && aperturas.length > 0
         ? parseFloat(aperturas[0].fondo_fijo_registrado)
         : 0;
 
-    // Sumas de pagos del día por tipo y cajero (nombre)
-    const desde = start;
-    const hasta = end;
+    // Si hay apertura, usar su fecha como inicio; si no, usar inicio del día
+    const desde =
+      aperturas && aperturas.length > 0 ? aperturas[0].fecha : dayStart;
+    const hasta = dayEnd;
+
+    console.debug("Rango de cierre - desde apertura:", desde, "hasta:", hasta);
 
     // Construir filtro de cajero: preferir cajero_id, si no disponible usar nombre
     const cajeroFilterIsId = !!usuarioActual?.id;
@@ -202,6 +188,12 @@ export default function RegistroCierreView({
       : 0;
     console.debug("dolaresDia computed (suma usd_monto):", dolaresDia);
 
+    // Actualizar estados del resumen
+    setEfectivoSistema(efectivoDiaNet);
+    setTarjetaSistema(tarjetaDia);
+    setTransferenciasSistema(transferenciasDia);
+    setDolaresSistema(dolaresDia);
+
     return {
       fondoFijoDia,
       efectivoDia: efectivoDiaNet,
@@ -248,6 +240,9 @@ export default function RegistroCierreView({
             </div>
 
             <div class="info">
+              <div><strong>Número de Cierre:</strong> ${
+                registro.id || "N/A"
+              }</div>
               <div><strong>Fecha:</strong> ${new Date().toLocaleDateString(
                 "es-HN"
               )} ${new Date().toLocaleTimeString("es-HN")}</div>
@@ -357,77 +352,24 @@ export default function RegistroCierreView({
 
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setGuardando(true);
     setError("");
-    // Validación cliente: evitar envíos si los campos no están completos
-    const fondoFijoFilled = fondoFijo.trim() !== "";
+
+    // Validación: asegurar que todos los campos de cierre estén llenos
     const efectivoFilled = efectivo.trim() !== "";
     const tarjetaFilled = tarjeta.trim() !== "";
     const transferenciasFilled = transferencias.trim() !== "";
-    const isApertura =
-      fondoFijoFilled &&
-      !efectivoFilled &&
-      !tarjetaFilled &&
-      !transferenciasFilled &&
-      !aperturaExisteHoy;
-    const isCierreReady =
-      fondoFijoFilled &&
-      efectivoFilled &&
-      tarjetaFilled &&
-      transferenciasFilled;
-    const showGuardar = isApertura || isCierreReady;
-    if (!showGuardar) {
-      setLoading(false);
-      setError(
-        "Complete los campos requeridos antes de guardar (fondo fijo y los montos de cierre)."
-      );
+
+    if (!efectivoFilled || !tarjetaFilled || !transferenciasFilled) {
+      setGuardando(false);
+      setError("Complete todos los campos requeridos antes de guardar.");
       return;
     }
+
     const { start, end } = getLocalDayRange();
-    // Verificar si ya existe apertura hoy SOLO si se está registrando apertura
-    const { data: aperturasHoy } = await supabase
-      .from("cierres")
-      .select("id")
-      .eq("tipo_registro", "apertura")
-      .eq("cajero_id", usuarioActual?.id)
-      .eq("caja", caja)
-      .gte("fecha", start)
-      .lte("fecha", end);
-    if (
-      fondoFijo &&
-      !efectivo &&
-      !tarjeta &&
-      !transferencias &&
-      aperturasHoy &&
-      aperturasHoy.length > 0
-    ) {
-      setLoading(false);
-      setError(
-        "Ya existe una apertura registrada para este cajero y caja hoy."
-      );
-      return;
-    }
-    // Verificar si ya existe cierre hoy
-    const { data: cierresHoy } = await supabase
-      .from("cierres")
-      .select("id")
-      .eq("tipo_registro", "cierre")
-      .eq("cajero_id", usuarioActual?.id)
-      .eq("caja", caja)
-      .gte("fecha", start)
-      .lte("fecha", end);
-    if (
-      cierresHoy &&
-      cierresHoy.length > 0 &&
-      efectivo &&
-      tarjeta &&
-      transferencias
-    ) {
-      setLoading(false);
-      setError("Ya existe un cierre registrado para este cajero y caja hoy.");
-      return;
-    }
-    // Esperar 1 segundo para mostrar pantalla de carga
+
+    // No hay más verificaciones de apertura porque ya no se registra desde aquí
+    // Calcular valores
     setTimeout(async () => {
       const {
         fondoFijoDia,
@@ -463,8 +405,10 @@ export default function RegistroCierreView({
       const diferenciaDolaresLps = diferenciaDolaresUSD * precioDolar;
 
       // Calcular diferencias (todo en Lempiras)
+      // Fondo fijo siempre es 0
+      const fondoFijoRegistrado = 0;
       const diferencia =
-        parseFloat(fondoFijo) -
+        fondoFijoRegistrado -
         fondoFijoDia +
         (parseFloat(efectivo) - efectivoDia) +
         (parseFloat(tarjeta) - tarjetaDia) +
@@ -498,61 +442,98 @@ export default function RegistroCierreView({
       };
 
       let registro: Registro;
-      if (fondoFijo && !efectivo && !tarjeta && !transferencias) {
-        // APERTURA
-        registro = {
-          tipo_registro: "apertura",
-          cajero: usuarioActual?.nombre,
-          cajero_id:
-            usuarioActual && usuarioActual.id ? usuarioActual.id : "SIN_ID",
-          caja,
-          // Guardar la fecha/hora en hora local de Honduras
-          fecha: formatToHondurasLocal(),
-          fondo_fijo_registrado: parseFloat(fondoFijo),
-          fondo_fijo: fondoFijoDia,
-          efectivo_registrado: 0,
-          efectivo_dia: 0,
-          monto_tarjeta_registrado: 0,
-          monto_tarjeta_dia: 0,
-          transferencias_registradas: 0,
-          transferencias_dia: 0,
-          dolares_registrado: 0,
-          dolares_dia: 0,
-          diferencia: 0,
-          observacion: "apertura",
-        };
+      // Ya no hay apertura, solo CIERRE
+      // CIERRE
+      registro = {
+        tipo_registro: "cierre",
+        cajero: usuarioActual?.nombre,
+        cajero_id:
+          usuarioActual && usuarioActual.id ? usuarioActual.id : "SIN_ID",
+        caja,
+        // Guardar la fecha/hora en hora local de Honduras
+        fecha: formatToHondurasLocal(),
+        fondo_fijo_registrado: fondoFijoRegistrado,
+        fondo_fijo: fondoFijoDia,
+        efectivo_registrado: parseFloat(efectivo),
+        efectivo_dia: efectivoDia,
+        monto_tarjeta_registrado: parseFloat(tarjeta),
+        monto_tarjeta_dia: tarjetaDia,
+        transferencias_registradas: parseFloat(transferencias),
+        transferencias_dia: transferenciasDia,
+        dolares_registrado: dolaresRegistrado,
+        dolares_dia: dolaresDia,
+        diferencia,
+        observacion,
+      };
+
+      // Para CIERRE: buscar si hay una apertura del día con estado='APERTURA' y actualizarla
+      // En lugar de crear una nueva fila
+      let error = null;
+      let registroId = null;
+      if (registro.tipo_registro === "cierre") {
+        // Buscar apertura del día
+        const { data: aperturaDelDia } = await supabase
+          .from("cierres")
+          .select("id")
+          .eq("cajero_id", usuarioActual?.id)
+          .eq("caja", caja)
+          .eq("estado", "APERTURA")
+          .gte("fecha", start)
+          .lte("fecha", end)
+          .limit(1)
+          .single();
+
+        if (aperturaDelDia) {
+          // Actualizar la misma fila con los datos del cierre
+          const { error: updateError } = await supabase
+            .from("cierres")
+            .update({
+              tipo_registro: "cierre",
+              fondo_fijo_registrado: registro.fondo_fijo_registrado,
+              fondo_fijo: registro.fondo_fijo,
+              efectivo_registrado: registro.efectivo_registrado,
+              efectivo_dia: registro.efectivo_dia,
+              monto_tarjeta_registrado: registro.monto_tarjeta_registrado,
+              monto_tarjeta_dia: registro.monto_tarjeta_dia,
+              transferencias_registradas: registro.transferencias_registradas,
+              transferencias_dia: registro.transferencias_dia,
+              dolares_registrado: registro.dolares_registrado,
+              dolares_dia: registro.dolares_dia,
+              diferencia: registro.diferencia,
+              observacion: registro.observacion,
+              estado: "CIERRE",
+            })
+            .eq("id", aperturaDelDia.id);
+          error = updateError;
+          registroId = aperturaDelDia.id;
+        } else {
+          // No hay apertura, insertar como cierre (compatibilidad con registros antiguos)
+          const { data: insertData, error: insertError } = await supabase
+            .from("cierres")
+            .insert([{ ...registro, estado: "CIERRE" }])
+            .select("id")
+            .single();
+          error = insertError;
+          registroId = insertData?.id;
+        }
       } else {
-        // CIERRE
-        registro = {
-          tipo_registro: "cierre",
-          cajero: usuarioActual?.nombre,
-          cajero_id:
-            usuarioActual && usuarioActual.id ? usuarioActual.id : "SIN_ID",
-          caja,
-          // Guardar la fecha/hora en hora local de Honduras
-          fecha: formatToHondurasLocal(),
-          fondo_fijo_registrado: parseFloat(fondoFijo),
-          fondo_fijo: fondoFijoDia,
-          efectivo_registrado: parseFloat(efectivo),
-          efectivo_dia: efectivoDia,
-          monto_tarjeta_registrado: parseFloat(tarjeta),
-          monto_tarjeta_dia: tarjetaDia,
-          transferencias_registradas: parseFloat(transferencias),
-          transferencias_dia: transferenciasDia,
-          dolares_registrado: dolaresRegistrado,
-          dolares_dia: dolaresDia,
-          diferencia,
-          observacion,
-        };
+        // Es apertura, insertar normalmente
+        const { data: insertData, error: insertError } = await supabase
+          .from("cierres")
+          .insert([{ ...registro, estado: "APERTURA" }])
+          .select("id")
+          .single();
+        error = insertError;
+        registroId = insertData?.id;
       }
-      const { error } = await supabase.from("cierres").insert([registro]);
-      setLoading(false);
+
+      setGuardando(false);
       if (error) {
         alert("Error al guardar: " + error.message);
       } else {
         // Imprimir reporte si es CIERRE
         if (registro.tipo_registro === "cierre") {
-          printCierreReport(registro, gastosDia);
+          printCierreReport({ ...registro, id: registroId }, gastosDia);
         }
 
         // Enviar datos al script de Google (fire-and-forget)
@@ -639,19 +620,12 @@ export default function RegistroCierreView({
   };
 
   // Validación visual en render: mostrar/ocultar botón y marcar required condicionalmente
-  const fondoFijoFilled = fondoFijo.trim() !== "";
+  // Fondo fijo siempre será 0, no se solicita al usuario
   const efectivoFilled = efectivo.trim() !== "";
   const tarjetaFilled = tarjeta.trim() !== "";
   const transferenciasFilled = transferencias.trim() !== "";
-  const isApertura =
-    fondoFijoFilled &&
-    !efectivoFilled &&
-    !tarjetaFilled &&
-    !transferenciasFilled &&
-    !aperturaExisteHoy;
-  const isCierreReady =
-    fondoFijoFilled && efectivoFilled && tarjetaFilled && transferenciasFilled;
-  const showGuardar = isApertura || isCierreReady;
+  const isCierreReady = efectivoFilled && tarjetaFilled && transferenciasFilled;
+  const showGuardar = isCierreReady;
 
   return (
     <div
@@ -661,223 +635,469 @@ export default function RegistroCierreView({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f5f5f5",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        padding: "20px",
       }}
     >
       <form
         onSubmit={handleGuardar}
         style={{
           background: "#fff",
-          borderRadius: 20,
-          boxShadow: "0 8px 32px #1976d244",
-          padding: 40,
-          minWidth: 370,
-          maxWidth: 440,
-          display: "flex",
-          flexDirection: "column",
-          gap: 18,
+          borderRadius: 24,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+          padding: 0,
+          width: "100%",
+          maxWidth: 1200,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 0,
+          overflow: "hidden",
         }}
       >
-        <h2
-          style={{
-            color: "#1976d2",
-            marginBottom: 10,
-            fontWeight: 800,
-            fontSize: 28,
-            letterSpacing: 1,
-          }}
-        >
-          Registro de Cierre de Caja
-        </h2>
+        {/* Columna izquierda - Resumen del Sistema */}
         <div
           style={{
-            marginBottom: 8,
-            fontSize: 16,
-            color: "#333",
-            background: "#f5f5f5",
-            borderRadius: 8,
-            padding: "10px 18px",
-            fontWeight: 600,
-          }}
-        >
-          <span style={{ color: "#1976d2" }}>
-            <b>Cajero:</b>
-          </span>{" "}
-          {usuarioActual?.nombre}
-          <br />
-          <span style={{ color: "#1976d2" }}>
-            <b>Caja:</b>
-          </span>{" "}
-          {caja}
-          <br />
-          <span style={{ color: "#1976d2" }}>
-            <b>Fecha:</b>
-          </span>{" "}
-          {new Date().toLocaleDateString()}
-        </div>
-        <label style={{ fontWeight: 700, color: "#388e3c", marginBottom: 4 }}>
-          Fondo fijo
-        </label>
-        <input
-          type="number"
-          value={fondoFijo}
-          onChange={(e) => setFondoFijo(e.target.value)}
-          required
-          placeholder="Ingrese el monto del fondo fijo"
-          style={{
-            padding: "10px",
-            borderRadius: 8,
-            border: "1px solid #bdbdbd",
-            fontSize: 16,
-            marginBottom: 2,
-          }}
-        />
-        <label style={{ fontWeight: 700, color: "#388e3c", marginBottom: 4 }}>
-          Efectivo
-        </label>
-        <input
-          type="number"
-          value={efectivo}
-          onChange={(e) => setEfectivo(e.target.value)}
-          required={!isApertura}
-          placeholder="0.00"
-          style={{
-            padding: "10px",
-            borderRadius: 8,
-            border: "1px solid #bdbdbd",
-            fontSize: 16,
-            marginBottom: 2,
-          }}
-        />
-        <label style={{ fontWeight: 700, color: "#388e3c", marginBottom: 4 }}>
-          Tarjeta
-        </label>
-        <input
-          type="number"
-          value={tarjeta}
-          onChange={(e) => setTarjeta(e.target.value)}
-          required={!isApertura}
-          placeholder="0.00"
-          style={{
-            padding: "10px",
-            borderRadius: 8,
-            border: "1px solid #bdbdbd",
-            fontSize: 16,
-            marginBottom: 2,
-          }}
-        />
-        <label style={{ fontWeight: 700, color: "#388e3c", marginBottom: 4 }}>
-          Transferencias
-        </label>
-        <input
-          type="number"
-          value={transferencias}
-          onChange={(e) => setTransferencias(e.target.value)}
-          required={!isApertura}
-          placeholder="0.00"
-          style={{
-            padding: "10px",
-            borderRadius: 8,
-            border: "1px solid #bdbdbd",
-            fontSize: 16,
-            marginBottom: 2,
-          }}
-        />
-        <label style={{ fontWeight: 700, color: "#f57c00", marginBottom: 4 }}>
-          Dólares (USD)
-        </label>
-        <input
-          type="number"
-          step="0.01"
-          value={dolares}
-          onChange={(e) => setDolares(e.target.value)}
-          placeholder="0.00"
-          style={{
-            padding: "10px",
-            borderRadius: 8,
-            border: "1px solid #bdbdbd",
-            fontSize: 16,
-            marginBottom: 2,
-          }}
-        />
-        <div
-          style={{
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            padding: 40,
+            color: "#fff",
             display: "flex",
-            gap: 12,
-            marginTop: 10,
-            alignItems: "center",
+            flexDirection: "column",
+            gap: 24,
           }}
         >
-          {showGuardar ? (
-            <button
-              type="submit"
-              disabled={loading || aperturaLoading}
-              style={{
-                background: "#1976d2",
-                color: "#fff",
-                borderRadius: 8,
-                border: "none",
-                padding: "12px 0",
-                fontWeight: 700,
-                fontSize: 20,
-                cursor: "pointer",
-                flex: 1,
-                boxShadow: "0 2px 8px #1976d222",
-              }}
-            >
-              {loading ? "Guardando..." : "Guardar cierre"}
-            </button>
-          ) : (
+          <h2
+            style={{
+              margin: 0,
+              fontWeight: 800,
+              fontSize: 32,
+              letterSpacing: 1,
+              textShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            }}
+          >
+            Resumen del Sistema
+          </h2>
+
+          <div
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              backdropFilter: "blur(10px)",
+              borderRadius: 16,
+              padding: 20,
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 12 }}>
+              <div style={{ marginBottom: 6 }}>
+                <strong>Cajero:</strong> {usuarioActual?.nombre}
+              </div>
+              <div style={{ marginBottom: 6 }}>
+                <strong>Caja:</strong> {caja}
+              </div>
+              <div>
+                <strong>Fecha:</strong> {new Date().toLocaleDateString("es-HN")}
+              </div>
+            </div>
+          </div>
+
+          {loading && (
+            <div style={{ textAlign: "center", padding: 20 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  border: "4px solid rgba(255,255,255,0.3)",
+                  borderTop: "4px solid #fff",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                  margin: "0 auto",
+                }}
+              />
+              <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+              <p style={{ marginTop: 16, opacity: 0.9 }}>
+                Calculando valores...
+              </p>
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div
               style={{
-                flex: 1,
-                padding: "12px 14px",
+                background: "rgba(255,255,255,0.2)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+                Efectivo en Sistema
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>
+                L {efectivoSistema.toFixed(2)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+                Tarjeta en Sistema
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>
+                L {tarjetaSistema.toFixed(2)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+                Transferencias en Sistema
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>
+                L {transferenciasSistema.toFixed(2)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 6 }}>
+                Dólares en Sistema
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>
+                $ {dolaresSistema.toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "auto",
+              fontSize: 12,
+              opacity: 0.7,
+              textAlign: "center",
+            }}
+          >
+            Los valores del sistema se calculan automáticamente
+          </div>
+        </div>
+
+        {/* Columna derecha - Formulario de Cierre */}
+        <div
+          style={{
+            padding: 40,
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+          }}
+        >
+          <h2
+            style={{
+              color: "#1976d2",
+              margin: 0,
+              fontWeight: 800,
+              fontSize: 28,
+              letterSpacing: 0.5,
+            }}
+          >
+            Registro de Cierre
+          </h2>
+
+          <p
+            style={{ margin: 0, color: "#666", fontSize: 15, marginBottom: 28 }}
+          >
+            Ingresa los valores contados físicamente en tu caja
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <label
+                style={{
+                  color: "#333",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  marginBottom: 8,
+                  display: "block",
+                }}
+              >
+                Efectivo Contado (Lempiras)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={efectivo}
+                onChange={(e) => setEfectivo(e.target.value)}
+                required
+                placeholder="0.00"
+                style={{
+                  padding: 14,
+                  fontSize: 16,
+                  border: "2px solid #e0e0e0",
+                  borderRadius: 10,
+                  outline: "none",
+                  transition: "border 0.3s, box-shadow 0.3s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#667eea";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(102,126,234,0.1)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#e0e0e0";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  color: "#333",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  marginBottom: 8,
+                  display: "block",
+                }}
+              >
+                Tarjeta (Lempiras)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={tarjeta}
+                onChange={(e) => setTarjeta(e.target.value)}
+                required
+                placeholder="0.00"
+                style={{
+                  padding: 14,
+                  fontSize: 16,
+                  border: "2px solid #e0e0e0",
+                  borderRadius: 10,
+                  outline: "none",
+                  transition: "border 0.3s, box-shadow 0.3s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#667eea";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(102,126,234,0.1)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#e0e0e0";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  color: "#333",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  marginBottom: 8,
+                  display: "block",
+                }}
+              >
+                Transferencias (Lempiras)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={transferencias}
+                onChange={(e) => setTransferencias(e.target.value)}
+                required
+                placeholder="0.00"
+                style={{
+                  padding: 14,
+                  fontSize: 16,
+                  border: "2px solid #e0e0e0",
+                  borderRadius: 10,
+                  outline: "none",
+                  transition: "border 0.3s, box-shadow 0.3s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#667eea";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(102,126,234,0.1)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#e0e0e0";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  color: "#333",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  marginBottom: 8,
+                  display: "block",
+                }}
+              >
+                Dólares (USD)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={dolares}
+                onChange={(e) => setDolares(e.target.value)}
+                placeholder="0.00 (opcional)"
+                style={{
+                  padding: 14,
+                  fontSize: 16,
+                  border: "2px solid #e0e0e0",
+                  borderRadius: 10,
+                  outline: "none",
+                  transition: "border 0.3s, box-shadow 0.3s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#667eea";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(102,126,234,0.1)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#e0e0e0";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div
+              style={{
+                background: "#fee",
+                border: "2px solid #f44336",
+                borderRadius: 10,
+                padding: 16,
+                color: "#c62828",
+                fontWeight: 600,
+                marginTop: 16,
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {!showGuardar && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: 14,
                 textAlign: "center",
-                color: "#616161",
-                borderRadius: 8,
+                color: "#999",
+                borderRadius: 10,
                 border: "1px dashed #e0e0e0",
                 background: "#fafafa",
                 fontWeight: 600,
               }}
             >
-              Rellene los campos requeridos para ver el botón
+              Rellene los campos requeridos para registrar el cierre
             </div>
           )}
-        </div>
-        {aperturaLoading && (
-          <div style={{ marginTop: 8, fontSize: 13, color: "#1976d2" }}>
-            Cargando apertura...
-          </div>
-        )}
-        {/* drawerMessage removido */}
-        {error && <div style={{ color: "red", fontWeight: 600 }}>{error}</div>}
-        {loading && (
-          <div style={{ marginTop: 18, textAlign: "center" }}>
-            <div
-              className="loader"
+
+          {showGuardar && (
+            <button
+              type="submit"
+              disabled={guardando}
               style={{
-                width: 48,
-                height: 48,
-                border: "6px solid #1976d2",
-                borderTop: "6px solid #fff",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                margin: "0 auto",
-              }}
-            />
-            <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
-            <div
-              style={{
-                color: "#1976d2",
+                marginTop: 20,
+                padding: 16,
+                backgroundColor: guardando ? "#ccc" : "#667eea",
+                color: "#fff",
+                border: "none",
+                borderRadius: 12,
                 fontWeight: 700,
-                fontSize: 18,
-                marginTop: 10,
+                fontSize: 17,
+                cursor: guardando ? "not-allowed" : "pointer",
+                transition: "all 0.3s",
+                boxShadow: guardando
+                  ? "none"
+                  : "0 4px 14px rgba(102,126,234,0.4)",
+                letterSpacing: 0.5,
+                width: "100%",
+              }}
+              onMouseEnter={(e) => {
+                if (!guardando) {
+                  e.currentTarget.style.backgroundColor = "#5568d3";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 6px 20px rgba(102,126,234,0.5)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!guardando) {
+                  e.currentTarget.style.backgroundColor = "#667eea";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 14px rgba(102,126,234,0.4)";
+                }
               }}
             >
-              Guardando cierre...
-            </div>
-          </div>
-        )}
+              {guardando ? "Guardando..." : "REGISTRAR CIERRE DE CAJA"}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onBack) {
+                if (window.confirm("¿Cancelar el registro de cierre?")) {
+                  onBack();
+                }
+              }
+            }}
+            style={{
+              marginTop: 12,
+              padding: 14,
+              backgroundColor: "transparent",
+              color: "#666",
+              border: "2px solid #e0e0e0",
+              borderRadius: 12,
+              fontWeight: 600,
+              fontSize: 15,
+              cursor: "pointer",
+              transition: "all 0.3s",
+              width: "100%",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#999";
+              e.currentTarget.style.color = "#333";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "#e0e0e0";
+              e.currentTarget.style.color = "#666";
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
     </div>
   );

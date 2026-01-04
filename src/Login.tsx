@@ -1,7 +1,4 @@
 import { useState } from "react";
-import CajaOperadaView from "./CajaOperadaView";
-import { supabase } from "./supabaseClient";
-import { getLocalDayRange } from "./utils/fechas";
 import { getBackgroundStyle } from "./assets/images";
 import { useDatosNegocio } from "./useDatosNegocio";
 
@@ -16,7 +13,6 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
-  const [cajaOperada, setCajaOperada] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,38 +34,7 @@ export default function Login({ onLogin }: LoginProps) {
         (u: any) => u.codigo === codigo && u.clave === clave
       );
       if (user) {
-        // Si es cajero, verificar si ya hizo apertura y cierre hoy
-        if (user.rol === "cajero") {
-          const { start, end } = getLocalDayRange();
-          const caja = user.caja || user.caja_asignada || "";
-          // Consultar aperturas y cierres usando rango local
-          const aperturas = await supabase
-            .from("cierres")
-            .select("id")
-            .eq("tipo_registro", "apertura")
-            .eq("cajero", user.nombre)
-            .eq("caja", caja)
-            .gte("fecha", start)
-            .lte("fecha", end);
-          const cierres = await supabase
-            .from("cierres")
-            .select("id")
-            .eq("tipo_registro", "cierre")
-            .eq("cajero", user.nombre)
-            .eq("caja", caja)
-            .gte("fecha", start)
-            .lte("fecha", end);
-          if (
-            aperturas.data &&
-            aperturas.data.length > 0 &&
-            cierres.data &&
-            cierres.data.length > 0
-          ) {
-            setCajaOperada(true);
-            setLoading(false);
-            return;
-          }
-        }
+        // Los cajeros ahora van directo a Punto de Ventas, sin verificar apertura/cierre
         setShowSplash(true);
         setTimeout(() => {
           // Guardar id, usuario, rol y caja en localStorage
@@ -96,22 +61,11 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(false);
   };
 
-  if (cajaOperada) {
-    return (
-      <CajaOperadaView
-        onCerrarSesion={() => {
-          localStorage.removeItem("usuario");
-          window.location.href = "/login";
-        }}
-      />
-    );
-  }
-  
   // Usar logo del negocio como fondo, o fondo por defecto
-  const backgroundStyle = datosNegocio.logo_url 
+  const backgroundStyle = datosNegocio.logo_url
     ? `url(${datosNegocio.logo_url}) center/cover no-repeat`
     : getBackgroundStyle();
-    
+
   return (
     <div
       style={{

@@ -510,27 +510,118 @@ export default function PaymentModal({
                 fontSize: 13,
               }}
             >
-              <div style={{ marginBottom: 8 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label style={labelStyle}>Tipo de pago</label>
-                <select
-                  value={tipo}
-                  onChange={(e) => {
-                    setTipo(e.target.value as any);
-                    setMonto("");
-                    setUsdAmount(0);
-                    setBanco("");
-                    setTarjeta("");
-                    setFactura("");
-                    setAutorizador("");
-                    setReferencia("");
-                  }}
-                  style={inputStyle}
-                >
-                  <option value="efectivo">Efectivo</option>
-                  <option value="tarjeta">Tarjeta</option>
-                  <option value="transferencia">Transferencia</option>
-                  <option value="dolares">Dólares</option>
-                </select>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipo("efectivo");
+                      setMonto("");
+                      setUsdAmount(0);
+                      setBanco("");
+                      setTarjeta("");
+                      setFactura("");
+                      setAutorizador("");
+                      setReferencia("");
+                      setTimeout(() => montoInputRef.current?.focus(), 100);
+                    }}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      border: tipo === "efectivo" ? "3px solid #1976d2" : "2px solid #ddd",
+                      background: tipo === "efectivo" ? "#e3f2fd" : theme === "lite" ? "#fff" : "#2a2a2a",
+                      color: tipo === "efectivo" ? "#1976d2" : theme === "lite" ? "#333" : "#f5f5f5",
+                      fontWeight: tipo === "efectivo" ? 700 : 600,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    💵 Efectivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipo("tarjeta");
+                      setMonto("");
+                      setUsdAmount(0);
+                      setBanco("");
+                      setTarjeta("");
+                      setFactura("");
+                      setAutorizador("");
+                      setReferencia("");
+                      setTimeout(() => montoInputRef.current?.focus(), 100);
+                    }}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      border: tipo === "tarjeta" ? "3px solid #1976d2" : "2px solid #ddd",
+                      background: tipo === "tarjeta" ? "#e3f2fd" : theme === "lite" ? "#fff" : "#2a2a2a",
+                      color: tipo === "tarjeta" ? "#1976d2" : theme === "lite" ? "#333" : "#f5f5f5",
+                      fontWeight: tipo === "tarjeta" ? 700 : 600,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    💳 Tarjeta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipo("transferencia");
+                      setMonto("");
+                      setUsdAmount(0);
+                      setBanco("");
+                      setTarjeta("");
+                      setFactura("");
+                      setAutorizador("");
+                      setReferencia("");
+                      setTimeout(() => montoInputRef.current?.focus(), 100);
+                    }}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      border: tipo === "transferencia" ? "3px solid #1976d2" : "2px solid #ddd",
+                      background: tipo === "transferencia" ? "#e3f2fd" : theme === "lite" ? "#fff" : "#2a2a2a",
+                      color: tipo === "transferencia" ? "#1976d2" : theme === "lite" ? "#333" : "#f5f5f5",
+                      fontWeight: tipo === "transferencia" ? 700 : 600,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    🏦 Transferencia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTipo("dolares");
+                      setMonto("");
+                      setUsdAmount(0);
+                      setBanco("");
+                      setTarjeta("");
+                      setFactura("");
+                      setAutorizador("");
+                      setReferencia("");
+                      setTimeout(() => montoInputRef.current?.focus(), 100);
+                    }}
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      border: tipo === "dolares" ? "3px solid #1976d2" : "2px solid #ddd",
+                      background: tipo === "dolares" ? "#e3f2fd" : theme === "lite" ? "#fff" : "#2a2a2a",
+                      color: tipo === "dolares" ? "#1976d2" : theme === "lite" ? "#333" : "#f5f5f5",
+                      fontWeight: tipo === "dolares" ? 700 : 600,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    💵 Dólares
+                  </button>
+                </div>
               </div>
 
               <div style={{ marginBottom: 8 }}>
@@ -557,6 +648,11 @@ export default function PaymentModal({
                             (v * exchangeRate).toFixed(2)
                           );
                           setMonto(String(converted));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && usdAmount > 0 && parseNumber(monto) > 0) {
+                            agregarPago();
+                          }
                         }}
                         style={inputStyle}
                       />
@@ -685,6 +781,11 @@ export default function PaymentModal({
                       <input
                         value={autorizador}
                         onChange={(e) => setAutorizador(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && parseNumber(monto) > 0 && banco && tarjeta && autorizador) {
+                            agregarPago();
+                          }
+                        }}
                         style={inputStyle}
                       />
                     </div>
@@ -736,6 +837,11 @@ export default function PaymentModal({
                     <input
                       value={referencia}
                       onChange={(e) => setReferencia(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && parseNumber(monto) > 0 && banco && referencia) {
+                          agregarPago();
+                        }
+                      }}
                       style={inputStyle}
                     />
                   </div>

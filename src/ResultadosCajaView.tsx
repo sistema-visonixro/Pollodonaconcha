@@ -802,6 +802,40 @@ export default function ResultadosCajaView() {
             </div>
           </>
         )}
+
+        {/* Botón para regresar a Punto de Ventas */}
+        <button
+          onClick={() => {
+            // Actualizar la vista almacenada antes de navegar para que App.tsx la restaure
+            try {
+              localStorage.setItem("vista", "puntoDeVenta");
+            } catch {}
+            window.location.href = "/punto-de-venta";
+          }}
+          style={{
+            marginTop: 24,
+            padding: "14px 28px",
+            background: "#1976d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: 10,
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#1565c0";
+            e.currentTarget.style.transform = "translateY(-2px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#1976d2";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          REGRESAR A PUNTO DE VENTAS
+        </button>
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ interface Seleccion {
   precio: number;
   cantidad: number;
   tipo: "comida" | "bebida" | "complemento";
+  complementos?: string; // "CON TODO", "SIN SALSAS", etc.
+  piezas?: string; // "PIEZAS VARIAS", "PECHUGA", "ALA, CADERA", etc.
 }
 
 // use centralized supabase client from src/supabaseClient.ts
@@ -74,12 +76,43 @@ export default function PuntoDeVentaView({
     setShowResumen(true);
     setResumenLoading(true);
     try {
-      const { start, end, day } = getLocalDayRange();
+      // Buscar la fecha de apertura del día actual para filtrar desde ese momento
+      const { start: dayStart, end: dayEnd, day } = getLocalDayRange();
+
+      // Obtener caja asignada
+      let cajaAsignada = caiInfo?.caja_asignada;
+      if (!cajaAsignada) {
+        const { data: caiData } = await supabase
+          .from("cai_facturas")
+          .select("caja_asignada")
+          .eq("cajero_id", usuarioActual?.id)
+          .single();
+        cajaAsignada = caiData?.caja_asignada || "";
+      }
+
+      // Buscar apertura del día con estado='APERTURA' o 'CIERRE'
+      const { data: aperturaDelDia } = await supabase
+        .from("cierres")
+        .select("fecha, estado")
+        .eq("cajero_id", usuarioActual?.id)
+        .eq("caja", cajaAsignada)
+        .gte("fecha", dayStart)
+        .lte("fecha", dayEnd)
+        .in("estado", ["APERTURA", "CIERRE"])
+        .order("fecha", { ascending: true })
+        .limit(1)
+        .single();
+
+      // Si hay apertura, usar su fecha como inicio; si no, usar inicio del día
+      const start = aperturaDelDia ? aperturaDelDia.fecha : dayStart;
+      const end = dayEnd;
+
       console.log("Resumen de caja - Rango:", {
         start,
         end,
         day,
         cajeroId: usuarioActual?.id,
+        usandoFechaApertura: !!aperturaDelDia,
       });
 
       const [
@@ -120,16 +153,6 @@ export default function PuntoDeVentaView({
         // Obtener gastos del día: la tabla 'gastos' tiene columna DATE, usar igualdad por día
         // Filtrar por cajero_id y caja asignada para que el resumen sea por este cajero/caja
         (async () => {
-          // Determinar caja asignada
-          let cajaAsignada = caiInfo?.caja_asignada;
-          if (!cajaAsignada) {
-            const { data: caiData } = await supabase
-              .from("cai_facturas")
-              .select("caja_asignada")
-              .eq("cajero_id", usuarioActual?.id)
-              .single();
-            cajaAsignada = caiData?.caja_asignada || "";
-          }
           if (!cajaAsignada) return Promise.resolve({ data: [] });
           return supabase
             .from("gastos")
@@ -269,6 +292,7 @@ export default function PuntoDeVentaView({
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [showCerrarSesionModal, setShowCerrarSesionModal] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -360,6 +384,11 @@ export default function PuntoDeVentaView({
   const [gastoSuccessMessage, setGastoSuccessMessage] = useState<string>("");
   // Eliminado showFacturaModal
   const [nombreCliente, setNombreCliente] = useState("");
+  const [showOrdenModal, setShowOrdenModal] = useState(false);
+  const [tipoOrden, setTipoOrden] = useState<"PARA LLEVAR" | "COMER AQUÍ">("PARA LLEVAR");
+  const [showComplementosModal, setShowComplementosModal] = useState(false);
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+  const [showPiezasModal, setShowPiezasModal] = useState(false);
   const [caiInfo, setCaiInfo] = useState<{
     caja_asignada: string;
     nombre_cajero: string;
@@ -387,6 +416,13 @@ export default function PuntoDeVentaView({
   const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<string | null>(
     null
   );
+
+  // Estados para control de apertura
+  const [aperturaRegistrada, setAperturaRegistrada] = useState<boolean | null>(
+    null
+  );
+  const [verificandoApertura, setVerificandoApertura] = useState(false);
+  const [registrandoApertura, setRegistrandoApertura] = useState(false);
 
   // Obtener datos de CAI y factura actual
   useEffect(() => {
@@ -451,55 +487,60 @@ export default function PuntoDeVentaView({
     fetchCaiYFactura();
   }, []);
 
-  // Consultar cierre de la fecha actual y redirigir según diferencia/observacion
+  // Verificar si existe apertura registrada del día
   useEffect(() => {
-    async function consultarCierreYRedirigir() {
-      if (!setView || !usuarioActual) return;
-      // Consultar el cierre de hoy para este cajero y caja usando rango local
-      const { start, end } = getLocalDayRange();
-      // Obtener caja asignada
-      let cajaAsignada = caiInfo?.caja_asignada;
-      if (!cajaAsignada) {
-        // Si no está en caiInfo, buscar en cai_facturas
-        const { data: caiData } = await supabase
-          .from("cai_facturas")
-          .select("caja_asignada")
-          .eq("cajero_id", usuarioActual.id)
-          .single();
-        cajaAsignada = caiData?.caja_asignada || "";
+    async function verificarApertura() {
+      if (!usuarioActual) {
+        setAperturaRegistrada(false);
+        return;
       }
-      if (!cajaAsignada) return;
-      const { data: cierresHoy } = await supabase
-        .from("cierres")
-        .select("diferencia, observacion")
-        .eq("tipo_registro", "cierre")
-        .eq("cajero", usuarioActual?.nombre)
-        .eq("caja", cajaAsignada)
-        .gte("fecha", start)
-        .lte("fecha", end);
-      if (cierresHoy && cierresHoy.length > 0) {
-        const cierre = cierresHoy[0];
-        if (cierre.diferencia !== 0 && cierre.observacion === "sin aclarar") {
-          setView("resultadosCaja");
-        } else if (
-          cierre.diferencia !== 0 &&
-          cierre.observacion === "aclarado"
-        ) {
-          setView("cajaOperada");
-        } else if (
-          cierre.diferencia === 0 &&
-          cierre.observacion === "cuadrado"
-        ) {
-          setView("cajaOperada");
-        } else {
-          setView("resultadosCaja");
+      setVerificandoApertura(true);
+      try {
+        const { start, end } = getLocalDayRange();
+        // Obtener caja asignada
+        let cajaAsignada = caiInfo?.caja_asignada;
+        if (!cajaAsignada) {
+          const { data: caiData } = await supabase
+            .from("cai_facturas")
+            .select("caja_asignada")
+            .eq("cajero_id", usuarioActual.id)
+            .single();
+          cajaAsignada = caiData?.caja_asignada || "";
         }
+        if (!cajaAsignada) {
+          setAperturaRegistrada(false);
+          setVerificandoApertura(false);
+          return;
+        }
+
+        // Verificar si existe una apertura ACTIVA (estado='APERTURA') en el día
+        // NO considerar registros con estado='CIERRE' como apertura activa
+        const { data: aperturasHoy } = await supabase
+          .from("cierres")
+          .select("id, estado")
+          .eq("cajero_id", usuarioActual.id)
+          .eq("caja", cajaAsignada)
+          .eq("estado", "APERTURA")
+          .gte("fecha", start)
+          .lte("fecha", end);
+
+        if (aperturasHoy && aperturasHoy.length > 0) {
+          setAperturaRegistrada(true);
+        } else {
+          setAperturaRegistrada(false);
+        }
+      } catch (err) {
+        console.error("Error verificando apertura:", err);
+        setAperturaRegistrada(false);
+      } finally {
+        setVerificandoApertura(false);
       }
     }
-    consultarCierreYRedirigir();
-    // Solo ejecutar al montar
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    verificarApertura();
+  }, [usuarioActual, caiInfo]);
+
+  // Redirección automática desactivada - el usuario puede navegar libremente
+  // La lógica de verificación de cierres solo se ejecuta desde el callback onCierreGuardado
 
   // Los modales se deben renderizar dentro del return principal
 
@@ -540,7 +581,16 @@ export default function PuntoDeVentaView({
           p.id === producto.id ? { ...p, cantidad: p.cantidad + 1 } : p
         );
       } else {
-        nuevos = [...prev, { ...producto, cantidad: 1, tipo: producto.tipo }];
+        nuevos = [
+          ...prev, 
+          { 
+            ...producto, 
+            cantidad: 1, 
+            tipo: producto.tipo,
+            complementos: "CON TODO",
+            piezas: "PIEZAS VARIAS"
+          }
+        ];
       }
       localStorage.setItem("seleccionados", JSON.stringify(nuevos));
       return nuevos;
@@ -554,11 +604,15 @@ export default function PuntoDeVentaView({
     setSeleccionados((prev) => {
       const existe = prev.find((p) => p.id === id);
       if (existe && existe.cantidad > 1) {
-        return prev.map((p) =>
+        const nuevos = prev.map((p) =>
           p.id === id ? { ...p, cantidad: p.cantidad - 1 } : p
         );
+        localStorage.setItem("seleccionados", JSON.stringify(nuevos));
+        return nuevos;
       }
-      return prev.filter((p) => p.id !== id);
+      const nuevos = prev.filter((p) => p.id !== id);
+      localStorage.setItem("seleccionados", JSON.stringify(nuevos));
+      return nuevos;
     });
   };
 
@@ -624,6 +678,64 @@ export default function PuntoDeVentaView({
       alert("Error al guardar gasto. Revisa la consola.");
     } finally {
       setGuardandoGasto(false);
+    }
+  };
+
+  // Función para registrar apertura con fondo inicial en 0
+  const registrarAperturaRapida = async () => {
+    if (!usuarioActual) return;
+    setRegistrandoApertura(true);
+    try {
+      // Obtener caja asignada
+      let cajaAsignada = caiInfo?.caja_asignada;
+      if (!cajaAsignada) {
+        const { data: caiData } = await supabase
+          .from("cai_facturas")
+          .select("caja_asignada")
+          .eq("cajero_id", usuarioActual.id)
+          .single();
+        cajaAsignada = caiData?.caja_asignada || "";
+      }
+      if (!cajaAsignada) {
+        alert("No tienes caja asignada. Contacta al administrador.");
+        setRegistrandoApertura(false);
+        return;
+      }
+
+      // Registrar apertura con estado='APERTURA' y fondo inicial en 0
+      const { error } = await supabase.from("cierres").insert([
+        {
+          tipo_registro: "apertura",
+          cajero: usuarioActual?.nombre,
+          cajero_id: usuarioActual?.id,
+          caja: cajaAsignada,
+          fecha: formatToHondurasLocal(),
+          fondo_fijo_registrado: 0,
+          fondo_fijo: 0,
+          efectivo_registrado: 0,
+          efectivo_dia: 0,
+          monto_tarjeta_registrado: 0,
+          monto_tarjeta_dia: 0,
+          transferencias_registradas: 0,
+          transferencias_dia: 0,
+          dolares_registrado: 0,
+          dolares_dia: 0,
+          diferencia: 0,
+          estado: "APERTURA",
+        },
+      ]);
+
+      if (error) {
+        console.error("Error registrando apertura:", error);
+        alert("Error al registrar apertura: " + error.message);
+      } else {
+        setAperturaRegistrada(true);
+      }
+    } catch (err: any) {
+      console.error("Error registrando apertura:", err);
+      alert("Error al registrar apertura: " + (err?.message || String(err)));
+    } finally {
+      setRegistrandoApertura(false);
     }
   };
 
@@ -939,23 +1051,25 @@ export default function PuntoDeVentaView({
         )}
         {/* Botón de cerrar sesión oculto */}
         <button style={{ display: "none" }}>Cerrar sesión</button>
-        {/* Botón para registrar cierre de caja */}
-        <button
-          style={{
-            background: "#fbc02d",
-            color: "#333",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 22px",
-            fontWeight: 700,
-            fontSize: 16,
-            cursor: "pointer",
-            boxShadow: "0 2px 8px #fbc02d44",
-          }}
-          onClick={() => setShowCierre(true)}
-        >
-          Registrar cierre de caja
-        </button>
+        {/* Botón para registrar cierre de caja - solo visible con apertura activa */}
+        {aperturaRegistrada && (
+          <button
+            style={{
+              background: "#fbc02d",
+              color: "#333",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 22px",
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: "pointer",
+              boxShadow: "0 2px 8px #fbc02d44",
+            }}
+            onClick={() => setShowCierre(true)}
+          >
+            Registrar cierre de caja
+          </button>
+        )}
         {/* Botón visible de Resumen de caja debajo del botón 'Registrar cierre de caja' */}
         <div
           style={{ display: "flex", justifyContent: "center", marginTop: 12 }}
@@ -1059,40 +1173,34 @@ export default function PuntoDeVentaView({
             <RegistroCierreView
               usuarioActual={usuarioActual}
               caja={caiInfo?.caja_asignada || ""}
+              onBack={() => setShowCierre(false)}
               onCierreGuardado={async () => {
                 if (!setView) return;
                 // Consultar el cierre de hoy para este cajero y caja usando rango local
                 const { start, end } = getLocalDayRange();
                 const { data: cierresHoy } = await supabase
                   .from("cierres")
-                  .select("diferencia, observacion")
-                  .eq("tipo_registro", "cierre")
-                  .eq("cajero", usuarioActual?.nombre)
+                  .select("diferencia, observacion, estado")
+                  .eq("cajero_id", usuarioActual?.id)
                   .eq("caja", caiInfo?.caja_asignada || "")
+                  .eq("estado", "CIERRE")
                   .gte("fecha", start)
                   .lte("fecha", end);
+
+                // Actualizar estado de apertura
+                setAperturaRegistrada(false);
+
                 if (cierresHoy && cierresHoy.length > 0) {
                   const cierre = cierresHoy[0];
-                  if (
-                    cierre.diferencia !== 0 &&
-                    cierre.observacion === "sin aclarar"
-                  ) {
+                  // Si hay diferencia, mostrar resultados
+                  if (cierre.diferencia !== 0) {
                     setView("resultadosCaja");
-                  } else if (
-                    cierre.diferencia !== 0 &&
-                    cierre.observacion === "aclarado"
-                  ) {
-                    setView("cajaOperada");
-                  } else if (
-                    cierre.diferencia === 0 &&
-                    cierre.observacion === "cuadrado"
-                  ) {
-                    setView("cajaOperada");
                   } else {
-                    setView("resultadosCaja");
+                    // Si no hay diferencia, cerrar modal y quedarse en punto de ventas
+                    setShowCierre(false);
                   }
                 } else {
-                  setView("resultadosCaja");
+                  setShowCierre(false);
                 }
               }}
             />
@@ -1218,6 +1326,7 @@ export default function PuntoDeVentaView({
                 }px; font-weight:800; color:#000; text-align:center; margin-bottom:6px;'>${
               etiquetaConfig?.etiqueta_comanda || "COMANDA COCINA"
             }</div>
+                <div style='font-size:28px; font-weight:900; color:#000; text-align:center; margin:16px 0;'>${tipoOrden}</div>
                 <div style='font-size:20px; font-weight:800; color:#000; text-align:center; margin-bottom:12px;'>Cliente: <b>${nombreCliente}</b></div>
                 <div style='font-size:14px; font-weight:600; color:#222; text-align:center; margin-bottom:6px;'>Factura: ${
                   facturaActual || ""
@@ -1234,11 +1343,11 @@ export default function PuntoDeVentaView({
                         (p) =>
                           `<li style='font-size:${
                             etiquetaConfig?.etiqueta_fontsize || 20
-                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
-                            p.nombre
-                          }</span><span>L ${p.precio.toFixed(2)} x${
-                            p.cantidad
-                          }</span></div></li>`
+                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'>
+                            <div style='font-weight:700;'>${p.nombre}</div>
+                            ${p.complementos ? `<div style='font-size:14px; margin-top:4px;'><span style='font-weight:700;'>- ${p.complementos}</span></div>` : ''}
+                            ${p.piezas && p.piezas !== 'PIEZAS VARIAS' ? `<div style='font-size:14px; margin-top:2px;'><span style='font-weight:700;'>- ${p.piezas}</span></div>` : ''}
+                          </li>`
                       )
                       .join("")}
                   </ul>
@@ -1251,18 +1360,37 @@ export default function PuntoDeVentaView({
                   0
                     ? `
                   <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>COMPLEMENTOS</div>
-                  <ul style='list-style:none; padding:0; margin-bottom:0;'>
+                  <ul style='list-style:none; padding:0; margin-bottom:12px;'>
                     ${seleccionados
                       .filter((p) => p.tipo === "complemento")
                       .map(
                         (p) =>
                           `<li style='font-size:${
                             etiquetaConfig?.etiqueta_fontsize || 20
-                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
-                            p.nombre
-                          }</span><span>L ${p.precio.toFixed(2)} x${
-                            p.cantidad
-                          }</span></div></li>`
+                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'>
+                            <div style='font-weight:700;'>${p.nombre}</div>
+                          </li>`
+                      )
+                      .join("")}
+                  </ul>
+                `
+                    : ""
+                }
+
+                ${
+                  seleccionados.filter((p) => p.tipo === "bebida").length > 0
+                    ? `
+                  <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>BEBIDAS</div>
+                  <ul style='list-style:none; padding:0; margin-bottom:0;'>
+                    ${seleccionados
+                      .filter((p) => p.tipo === "bebida")
+                      .map(
+                        (p) =>
+                          `<li style='font-size:${
+                            etiquetaConfig?.etiqueta_fontsize || 20
+                          }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'>
+                            <div style='font-weight:700;'>${p.nombre}</div>
+                          </li>`
                       )
                       .join("")}
                   </ul>
@@ -1876,9 +2004,62 @@ export default function PuntoDeVentaView({
               );
             })()}
 
+          {/* Botón para registrar apertura si no existe */}
+          {aperturaRegistrada === false && !verificandoApertura && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: "40px 20px",
+                background: theme === "lite" ? "#fff3cd" : "#3a2e1c",
+                borderRadius: 16,
+                marginBottom: 20,
+                border: `2px solid ${theme === "lite" ? "#ffc107" : "#ff9800"}`,
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <p
+                  style={{
+                    margin: "0 0 16px 0",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: theme === "lite" ? "#856404" : "#ffb74d",
+                  }}
+                >
+                  No has registrado apertura de caja hoy.
+                </p>
+                <button
+                  onClick={registrarAperturaRapida}
+                  disabled={registrandoApertura}
+                  style={{
+                    padding: "12px 32px",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    background: "#1976d2",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 10,
+                    cursor: registrandoApertura ? "not-allowed" : "pointer",
+                    opacity: registrandoApertura ? 0.6 : 1,
+                    boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+                  }}
+                >
+                  {registrandoApertura
+                    ? "Registrando..."
+                    : "REGISTRAR APERTURA"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Product Grid */}
           {loading ? (
             <p style={{ textAlign: "center" }}>Cargando...</p>
+          ) : aperturaRegistrada === false ? (
+            <p style={{ textAlign: "center", color: "#999" }}>
+              Registra la apertura para ver los productos
+            </p>
           ) : (
             <div
               style={{
@@ -2058,8 +2239,8 @@ export default function PuntoDeVentaView({
                       alert("¡Límite de facturas alcanzado!");
                       return;
                     }
-                    // Abrir modal inmediatamente sin verificaciones costosas
-                    setShowClienteModal(true);
+                    // Abrir modal de ORDEN primero
+                    setShowOrdenModal(true);
                   }}
                 >
                   Confirmar Pedido
@@ -2080,7 +2261,7 @@ export default function PuntoDeVentaView({
                   disabled={seleccionados.length === 0}
                   onClick={() => setShowEnvioModal(true)}
                 >
-                  Domicilio
+                  Pedido por Teléfono
                 </button>
               </div>
 
@@ -2151,34 +2332,62 @@ export default function PuntoDeVentaView({
                         display: "flex",
                         gap: 6,
                         alignItems: "center",
-                        width: 72,
-                        flex: "0 0 72px",
+                        width: p.tipo === "comida" ? 108 : 36,
+                        flex: p.tipo === "comida" ? "0 0 108px" : "0 0 36px",
                       }}
                     >
-                      <button
-                        onClick={() =>
-                          agregarProducto(
-                            productos.find((prod) => prod.id === p.id)!
-                          )
-                        }
-                        style={{
-                          background: "#388e3c",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 4,
-                          width: 32,
-                          height: 32,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          fontSize: 16,
-                          lineHeight: 1,
-                        }}
-                        aria-label={`Agregar ${p.nombre}`}
-                      >
-                        +
-                      </button>
+                      {p.tipo === "comida" && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedProductIndex(index);
+                              setShowComplementosModal(true);
+                            }}
+                            style={{
+                              background: "#4caf50",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 4,
+                              width: 32,
+                              height: 32,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              fontSize: 16,
+                              lineHeight: 1,
+                            }}
+                            title="Complementos Incluidos"
+                            aria-label={`Complementos de ${p.nombre}`}
+                          >
+                            🍗
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedProductIndex(index);
+                              setShowPiezasModal(true);
+                            }}
+                            style={{
+                              background: "#ff9800",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 4,
+                              width: 32,
+                              height: 32,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              fontSize: 16,
+                              lineHeight: 1,
+                            }}
+                            title="Piezas"
+                            aria-label={`Piezas de ${p.nombre}`}
+                          >
+                            🍖
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={() => eliminarProducto(p.id)}
                         style={{
@@ -2195,6 +2404,7 @@ export default function PuntoDeVentaView({
                           fontSize: 16,
                           lineHeight: 1,
                         }}
+                        title="Eliminar"
                         aria-label={`Eliminar ${p.nombre}`}
                       >
                         −
@@ -2263,6 +2473,363 @@ export default function PuntoDeVentaView({
           )}
         </div>
       </div>
+
+      {/* Modal para seleccionar tipo de ORDEN */}
+      {showOrdenModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: theme === "lite" ? "#fff" : "#232526",
+              borderRadius: 20,
+              boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+              padding: 40,
+              minWidth: 400,
+              maxWidth: 500,
+              width: "100%",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              gap: 24,
+              color: theme === "lite" ? "#222" : "#f5f5f5",
+            }}
+          >
+            <h2 
+              style={{ 
+                color: "#1976d2", 
+                marginBottom: 8, 
+                textAlign: "center",
+                fontSize: 32,
+                fontWeight: 800,
+              }}
+            >
+              ORDEN
+            </h2>
+            <p style={{ textAlign: "center", color: "#666", fontSize: 16, margin: 0 }}>
+              Seleccione el tipo de orden
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <button
+                onClick={() => {
+                  setTipoOrden("PARA LLEVAR");
+                  setShowOrdenModal(false);
+                  setShowClienteModal(true);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  color: "#fff",
+                  borderRadius: 12,
+                  border: "none",
+                  padding: "20px 32px",
+                  fontWeight: 700,
+                  fontSize: 24,
+                  cursor: "pointer",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  boxShadow: "0 4px 15px rgba(102,126,234,0.4)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(102,126,234,0.6)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 4px 15px rgba(102,126,234,0.4)";
+                }}
+              >
+                PARA LLEVAR
+              </button>
+              <button
+                onClick={() => {
+                  setTipoOrden("COMER AQUÍ");
+                  setShowOrdenModal(false);
+                  setShowClienteModal(true);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                  color: "#fff",
+                  borderRadius: 12,
+                  border: "none",
+                  padding: "20px 32px",
+                  fontWeight: 700,
+                  fontSize: 24,
+                  cursor: "pointer",
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  boxShadow: "0 4px 15px rgba(245,87,108,0.4)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(245,87,108,0.6)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 4px 15px rgba(245,87,108,0.4)";
+                }}
+              >
+                COMER AQUÍ
+              </button>
+            </div>
+            <button
+              onClick={() => setShowOrdenModal(false)}
+              style={{
+                background: "transparent",
+                color: "#999",
+                border: "2px solid #ddd",
+                borderRadius: 8,
+                padding: "12px 24px",
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+                marginTop: 8,
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Complementos Incluidos */}
+      {showComplementosModal && selectedProductIndex !== null && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: theme === "lite" ? "#fff" : "#232526",
+              borderRadius: 20,
+              boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+              padding: 40,
+              minWidth: 400,
+              maxWidth: 500,
+              width: "100%",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              gap: 24,
+              color: theme === "lite" ? "#222" : "#f5f5f5",
+            }}
+          >
+            <h2 
+              style={{ 
+                color: "#4caf50", 
+                marginBottom: 8, 
+                textAlign: "center",
+                fontSize: 28,
+                fontWeight: 800,
+              }}
+            >
+              🍗 COMPLEMENTOS INCLUIDOS
+            </h2>
+            <p style={{ textAlign: "center", color: "#666", fontSize: 14, margin: 0 }}>
+              Seleccione las opciones para {seleccionados[selectedProductIndex]?.nombre}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {["CON TODO", "SIN NADA", "SIN SALSAS", "SIN REPOLLO", "SIN ADEREZO", "SIN CEBOLLA"].map((opcion) => {
+                const isSelected = seleccionados[selectedProductIndex]?.complementos === opcion;
+                return (
+                  <button
+                    key={opcion}
+                    onClick={() => {
+                      const newSeleccionados = [...seleccionados];
+                      newSeleccionados[selectedProductIndex] = {
+                        ...newSeleccionados[selectedProductIndex],
+                        complementos: opcion,
+                      };
+                      setSeleccionados(newSeleccionados);
+                    }}
+                    style={{
+                      background: isSelected 
+                        ? "linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)" 
+                        : theme === "lite" ? "#f5f5f5" : "#424242",
+                      color: isSelected ? "#fff" : theme === "lite" ? "#222" : "#f5f5f5",
+                      borderRadius: 10,
+                      border: isSelected ? "3px solid #2e7d32" : "2px solid #ddd",
+                      padding: "16px 24px",
+                      fontWeight: isSelected ? 700 : 600,
+                      fontSize: 16,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: isSelected ? "0 4px 15px rgba(76,175,80,0.4)" : "none",
+                    }}
+                  >
+                    {opcion}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                setShowComplementosModal(false);
+                setSelectedProductIndex(null);
+              }}
+              style={{
+                background: "#1976d2",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "12px 24px",
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+                marginTop: 8,
+              }}
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Piezas */}
+      {showPiezasModal && selectedProductIndex !== null && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: theme === "lite" ? "#fff" : "#232526",
+              borderRadius: 20,
+              boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+              padding: 40,
+              minWidth: 400,
+              maxWidth: 500,
+              width: "100%",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              gap: 24,
+              color: theme === "lite" ? "#222" : "#f5f5f5",
+            }}
+          >
+            <h2 
+              style={{ 
+                color: "#ff9800", 
+                marginBottom: 8, 
+                textAlign: "center",
+                fontSize: 28,
+                fontWeight: 800,
+              }}
+            >
+              🍖 PIEZAS
+            </h2>
+            <p style={{ textAlign: "center", color: "#666", fontSize: 14, margin: 0 }}>
+              Seleccione las piezas para {seleccionados[selectedProductIndex]?.nombre}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {["PIEZAS VARIAS", "PECHUGA", "ALA", "CADERA", "PIERNA"].map((pieza) => {
+                const currentPiezas = seleccionados[selectedProductIndex]?.piezas || "PIEZAS VARIAS";
+                const piezasArray = currentPiezas.split(", ");
+                const isSelected = piezasArray.includes(pieza);
+                
+                return (
+                  <button
+                    key={pieza}
+                    onClick={() => {
+                      const newSeleccionados = [...seleccionados];
+                      let newPiezas: string[];
+                      
+                      if (pieza === "PIEZAS VARIAS") {
+                        // Si selecciona PIEZAS VARIAS, deseleccionar todo lo demás
+                        newPiezas = ["PIEZAS VARIAS"];
+                      } else {
+                        // Si selecciona otra pieza, quitar PIEZAS VARIAS
+                        newPiezas = piezasArray.filter(p => p !== "PIEZAS VARIAS");
+                        
+                        if (isSelected) {
+                          // Deseleccionar
+                          newPiezas = newPiezas.filter(p => p !== pieza);
+                          // Si no queda nada, volver a PIEZAS VARIAS
+                          if (newPiezas.length === 0) {
+                            newPiezas = ["PIEZAS VARIAS"];
+                          }
+                        } else {
+                          // Seleccionar
+                          newPiezas.push(pieza);
+                        }
+                      }
+                      
+                      newSeleccionados[selectedProductIndex] = {
+                        ...newSeleccionados[selectedProductIndex],
+                        piezas: newPiezas.join(", "),
+                      };
+                      setSeleccionados(newSeleccionados);
+                    }}
+                    style={{
+                      background: isSelected 
+                        ? "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)" 
+                        : theme === "lite" ? "#f5f5f5" : "#424242",
+                      color: isSelected ? "#fff" : theme === "lite" ? "#222" : "#f5f5f5",
+                      borderRadius: 10,
+                      border: isSelected ? "3px solid #f57c00" : "2px solid #ddd",
+                      padding: "16px 24px",
+                      fontWeight: isSelected ? 700 : 600,
+                      fontSize: 16,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: isSelected ? "0 4px 15px rgba(255,152,0,0.4)" : "none",
+                    }}
+                  >
+                    {pieza}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                setShowPiezasModal(false);
+                setSelectedProductIndex(null);
+              }}
+              style={{
+                background: "#1976d2",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "12px 24px",
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+                marginTop: 8,
+              }}
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal para nombre del cliente */}
       {showClienteModal && (
@@ -2374,210 +2941,293 @@ export default function PuntoDeVentaView({
             left: 0,
             width: "100vw",
             height: "100vh",
-            background:
-              theme === "lite" ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.55)",
+            background: "rgba(0,0,0,0.6)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
+            backdropFilter: "blur(4px)",
           }}
         >
           <div
             style={{
-              background: theme === "lite" ? "#fff" : "#1f2937",
-              borderRadius: 14,
-              padding: 18,
-              minWidth: 360,
-              maxWidth: 760,
-              width: "92%",
-              boxShadow: "0 12px 40px rgba(2,6,23,0.4)",
+              background: theme === "lite" ? "#ffffff" : "#1e293b",
+              borderRadius: 24,
+              padding: 32,
+              minWidth: 400,
+              maxWidth: 900,
+              width: "90%",
+              boxShadow: theme === "lite" 
+                ? "0 20px 60px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1)" 
+                : "0 20px 60px rgba(0,0,0,0.5)",
+              border: theme === "lite" ? "1px solid #e2e8f0" : "1px solid #334155",
             }}
           >
+            {/* Header */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 12,
+                marginBottom: 24,
+                paddingBottom: 16,
+                borderBottom: theme === "lite" ? "2px solid #e2e8f0" : "2px solid #334155",
               }}
             >
-              <h3
-                style={{
-                  margin: 0,
-                  color: theme === "lite" ? "#1f2937" : "#f1f5f9",
-                  fontSize: 18,
-                }}
-              >
-                pedidos
-              </h3>
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    color: theme === "lite" ? "#0f172a" : "#f1f5f9",
+                    fontSize: 28,
+                    fontWeight: 800,
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  📦 Pedido por Teléfono
+                </h3>
+                <p style={{
+                  margin: "4px 0 0 0",
+                  color: theme === "lite" ? "#64748b" : "#94a3b8",
+                  fontSize: 14,
+                }}>
+                  Ingresa los datos del cliente y tipo de pago
+                </p>
+              </div>
               <button
                 onClick={() => setShowEnvioModal(false)}
                 style={{
                   background: "transparent",
                   border: "none",
-                  color: theme === "lite" ? "#374151" : "#cbd5e1",
+                  color: theme === "lite" ? "#64748b" : "#94a3b8",
                   fontWeight: 700,
                   cursor: "pointer",
+                  fontSize: 24,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = theme === "lite" ? "#f1f5f9" : "#334155";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
                 }}
               >
-                X
+                ✕
               </button>
             </div>
+
+            {/* Content */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 320px",
-                gap: 16,
+                gridTemplateColumns: "1fr 340px",
+                gap: 24,
                 alignItems: "start",
               }}
             >
+              {/* Form Section */}
               <div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 13,
-                        color: theme === "lite" ? "#374151" : "#e6eef8",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Nombre del cliente
-                    </label>
-                    <input
-                      placeholder="Nombre cliente"
-                      value={envioCliente}
-                      onChange={(e) => setEnvioCliente(e.target.value)}
-                      className="form-input"
-                      style={{ width: "100%" }}
-                    />
+                <div style={{ marginBottom: 20 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: theme === "lite" ? "#334155" : "#e2e8f0",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Nombre del cliente
+                  </label>
+                  <input
+                    placeholder="Ingrese el nombre completo"
+                    value={envioCliente}
+                    onChange={(e) => setEnvioCliente(e.target.value)}
+                    className="form-input"
+                    style={{ 
+                      width: "100%",
+                      padding: "12px 16px",
+                      fontSize: 15,
+                      borderRadius: 10,
+                      border: theme === "lite" ? "2px solid #e2e8f0" : "2px solid #334155",
+                      background: theme === "lite" ? "#ffffff" : "#0f172a",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: theme === "lite" ? "#334155" : "#e2e8f0",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Teléfono
+                  </label>
+                  <input
+                    placeholder="Número de teléfono"
+                    value={envioCelular}
+                    onChange={(e) => setEnvioCelular(e.target.value)}
+                    className="form-input"
+                    style={{ 
+                      width: "100%",
+                      padding: "12px 16px",
+                      fontSize: 15,
+                      borderRadius: 10,
+                      border: theme === "lite" ? "2px solid #e2e8f0" : "2px solid #334155",
+                      background: theme === "lite" ? "#ffffff" : "#0f172a",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: theme === "lite" ? "#334155" : "#e2e8f0",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Tipo de pago
+                  </label>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {[
+                      { value: "Efectivo", icon: "💵", color: "#10b981" },
+                      { value: "Tarjeta", icon: "💳", color: "#3b82f6" },
+                      { value: "Transferencia", icon: "🏦", color: "#8b5cf6" }
+                    ].map((tipo) => {
+                      const isSelected = envioTipoPago === tipo.value;
+                      return (
+                        <button
+                          key={tipo.value}
+                          onClick={() => setEnvioTipoPago(tipo.value as any)}
+                          style={{
+                            flex: 1,
+                            padding: "12px 16px",
+                            borderRadius: 10,
+                            border: isSelected 
+                              ? `3px solid ${tipo.color}` 
+                              : theme === "lite" ? "2px solid #e2e8f0" : "2px solid #334155",
+                            background: isSelected 
+                              ? `${tipo.color}15` 
+                              : theme === "lite" ? "#ffffff" : "#0f172a",
+                            color: isSelected 
+                              ? tipo.color 
+                              : theme === "lite" ? "#64748b" : "#94a3b8",
+                            fontWeight: isSelected ? 700 : 600,
+                            fontSize: 14,
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          <span style={{ fontSize: 24 }}>{tipo.icon}</span>
+                          <span>{tipo.value}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 13,
-                        color: theme === "lite" ? "#374151" : "#e6eef8",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Teléfono
-                    </label>
-                    <input
-                      placeholder="Número de teléfono"
-                      value={envioCelular}
-                      onChange={(e) => setEnvioCelular(e.target.value)}
-                      className="form-input"
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 13,
-                        color: theme === "lite" ? "#374151" : "#e6eef8",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Tipo de pago
-                    </label>
-                    <select
-                      value={envioTipoPago}
-                      onChange={(e) => setEnvioTipoPago(e.target.value as any)}
-                      className="form-input"
-                      style={{ width: "100%" }}
-                    >
-                      <option value="Efectivo">Efectivo</option>
-                      <option value="Tarjeta">Tarjeta</option>
-                      <option value="Transferencia">Transferencia</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 13,
-                        color: theme === "lite" ? "#374151" : "#e6eef8",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Costo de envío (L)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={envioCosto}
-                      onChange={(e) => setEnvioCosto(e.target.value)}
-                      className="form-input"
-                      placeholder="0.00"
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                </div>
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 13,
-                    color: theme === "lite" ? "#374151" : "#cbd5e1",
-                  }}
-                >
-                  <small>
-                    Completa los campos del cliente antes de guardar. El botón
-                    "Guardar" imprimirá el recibo y la comanda automáticamente
-                    (si hay impresora configurada).
-                  </small>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: theme === "lite" ? "#334155" : "#e2e8f0",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Costo de envío (L)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={envioCosto}
+                    onChange={(e) => setEnvioCosto(e.target.value)}
+                    className="form-input"
+                    placeholder="0.00"
+                    style={{ 
+                      width: "100%",
+                      padding: "12px 16px",
+                      fontSize: 15,
+                      borderRadius: 10,
+                      border: theme === "lite" ? "2px solid #e2e8f0" : "2px solid #334155",
+                      background: theme === "lite" ? "#ffffff" : "#0f172a",
+                    }}
+                  />
                 </div>
               </div>
+
+              {/* Summary Section */}
               <div
                 style={{
-                  background: theme === "lite" ? "#f8fafc" : "#0b1220",
-                  borderRadius: 10,
-                  padding: 12,
-                  boxShadow:
-                    theme === "lite" ? "none" : "0 6px 18px rgba(0,0,0,0.6)",
+                  background: theme === "lite" 
+                    ? "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" 
+                    : "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+                  borderRadius: 16,
+                  padding: 24,
+                  boxShadow: theme === "lite" 
+                    ? "0 4px 12px rgba(0,0,0,0.05)" 
+                    : "0 4px 12px rgba(0,0,0,0.3)",
+                  border: theme === "lite" ? "1px solid #e2e8f0" : "1px solid #334155",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 13,
-                    color: theme === "lite" ? "#374151" : "#e6eef8",
-                    marginBottom: 8,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: theme === "lite" ? "#0f172a" : "#f1f5f9",
+                    marginBottom: 16,
+                    letterSpacing: "-0.3px",
                   }}
                 >
-                  Resumen
+                  📋 Resumen del Pedido
                 </div>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    padding: "6px 0",
+                    padding: "10px 0",
+                    fontSize: 15,
+                    color: theme === "lite" ? "#475569" : "#cbd5e1",
                   }}
                 >
                   <div>Subtotal</div>
-                  <div>L {total.toFixed(2)}</div>
+                  <div style={{ fontWeight: 600 }}>L {total.toFixed(2)}</div>
                 </div>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    padding: "6px 0",
+                    padding: "10px 0",
+                    fontSize: 15,
+                    color: theme === "lite" ? "#475569" : "#cbd5e1",
                   }}
                 >
-                  <div>Costo envío</div>
-                  <div>L {Number(envioCosto || 0).toFixed(2)}</div>
+                  <div>Costo de envío</div>
+                  <div style={{ fontWeight: 600 }}>L {Number(envioCosto || 0).toFixed(2)}</div>
                 </div>
                 <div
                   style={{
-                    height: 1,
-                    background: theme === "lite" ? "#e6eef8" : "#12202e",
-                    margin: "8px 0",
+                    height: 2,
+                    background: theme === "lite" ? "#e2e8f0" : "#334155",
+                    margin: "12px 0",
                   }}
                 />
                 <div
@@ -2585,7 +3235,8 @@ export default function PuntoDeVentaView({
                     display: "flex",
                     justifyContent: "space-between",
                     fontWeight: 800,
-                    fontSize: 16,
+                    fontSize: 20,
+                    color: theme === "lite" ? "#0f172a" : "#f1f5f9",
                   }}
                 >
                   <div>Total</div>
@@ -2593,16 +3244,25 @@ export default function PuntoDeVentaView({
                 </div>
                 <div
                   style={{
-                    marginTop: 12,
+                    marginTop: 20,
                     display: "flex",
-                    gap: 8,
-                    justifyContent: "flex-end",
+                    flexDirection: "column",
+                    gap: 10,
                   }}
                 >
                   <button
                     onClick={() => setShowEnvioModal(false)}
-                    className="btn-secondary"
-                    style={{ padding: "10px 14px" }}
+                    style={{
+                      padding: "12px 20px",
+                      borderRadius: 10,
+                      border: theme === "lite" ? "2px solid #e2e8f0" : "2px solid #334155",
+                      background: "transparent",
+                      color: theme === "lite" ? "#64748b" : "#94a3b8",
+                      fontWeight: 600,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
                   >
                     Cancelar
                   </button>
@@ -2679,6 +3339,7 @@ export default function PuntoDeVentaView({
                               etiquetaConfig?.etiqueta_comanda ||
                               "COMANDA COCINA"
                             }</div>
+                          <div style='font-size:28px; font-weight:900; color:#000; text-align:center; margin:16px 0;'>${tipoOrden}</div>
                           <div style='font-size:20px; font-weight:800; color:#000; text-align:center; margin-bottom:12px;'>Cliente: <b>${
                             registro.cliente
                           }</b></div>
@@ -2698,11 +3359,11 @@ export default function PuntoDeVentaView({
                                   (p) =>
                                     `<li style='font-size:${
                                       etiquetaConfig?.etiqueta_fontsize || 20
-                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
-                                      p.nombre
-                                    }</span><span>L ${p.precio.toFixed(2)} x${
-                                      p.cantidad
-                                    }</span></div></li>`
+                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'>
+                                      <div style='font-weight:700;'>${p.nombre}</div>
+                                      ${p.complementos ? `<div style='font-size:14px; margin-top:4px;'><span style='font-weight:700;'>- ${p.complementos}</span></div>` : ''}
+                                      ${p.piezas && p.piezas !== 'PIEZAS VARIAS' ? `<div style='font-size:14px; margin-top:2px;'><span style='font-weight:700;'>- ${p.piezas}</span></div>` : ''}
+                                    </li>`
                                 )
                                 .join("")}
                             </ul>
@@ -2716,18 +3377,38 @@ export default function PuntoDeVentaView({
                             ).length > 0
                               ? `
                             <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>COMPLEMENTOS</div>
-                            <ul style='list-style:none; padding:0; margin-bottom:0;'>
+                            <ul style='list-style:none; padding:0; margin-bottom:12px;'>
                               ${seleccionados
                                 .filter((p) => p.tipo === "complemento")
                                 .map(
                                   (p) =>
                                     `<li style='font-size:${
                                       etiquetaConfig?.etiqueta_fontsize || 20
-                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'><div style="display:flex; justify-content:space-between; align-items:center;"><span style='font-weight:700;'>${
-                                      p.nombre
-                                    }</span><span>L ${p.precio.toFixed(2)} x${
-                                      p.cantidad
-                                    }</span></div></li>`
+                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'>
+                                      <div style='font-weight:700;'>${p.nombre}</div>
+                                    </li>`
+                                )
+                                .join("")}
+                            </ul>
+                          `
+                              : ""
+                          }
+
+                          ${
+                            seleccionados.filter((p) => p.tipo === "bebida")
+                              .length > 0
+                              ? `
+                            <div style='font-size:18px; font-weight:800; color:#000; margin-top:12px; margin-bottom:8px; padding:6px; background:#f0f0f0; border-radius:4px;'>BEBIDAS</div>
+                            <ul style='list-style:none; padding:0; margin-bottom:0;'>
+                              ${seleccionados
+                                .filter((p) => p.tipo === "bebida")
+                                .map(
+                                  (p) =>
+                                    `<li style='font-size:${
+                                      etiquetaConfig?.etiqueta_fontsize || 20
+                                    }px; margin-bottom:6px; padding-bottom:8px; text-align:left; border-bottom:1px solid #000;'>
+                                      <div style='font-weight:700;'>${p.nombre}</div>
+                                    </li>`
                                 )
                                 .join("")}
                             </ul>
@@ -2962,10 +3643,27 @@ export default function PuntoDeVentaView({
                         setSavingEnvio(false);
                       }
                     }}
-                    className="btn-primary"
                     disabled={savingEnvio || !envioCliente || !envioCelular}
+                    style={{
+                      padding: "14px 24px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: savingEnvio || !envioCliente || !envioCelular
+                        ? theme === "lite" ? "#e2e8f0" : "#334155"
+                        : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      color: savingEnvio || !envioCliente || !envioCelular
+                        ? theme === "lite" ? "#94a3b8" : "#64748b"
+                        : "#ffffff",
+                      fontWeight: 700,
+                      fontSize: 16,
+                      cursor: savingEnvio || !envioCliente || !envioCelular ? "not-allowed" : "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: savingEnvio || !envioCliente || !envioCelular
+                        ? "none"
+                        : "0 4px 12px rgba(16, 185, 129, 0.3)",
+                    }}
                   >
-                    {savingEnvio ? "Guardando..." : "Guardar"}
+                    {savingEnvio ? "⏳ Guardando..." : "✓ Guardar Pedido"}
                   </button>
                 </div>
               </div>
@@ -3787,6 +4485,96 @@ export default function PuntoDeVentaView({
               </div>
             )}
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          </div>
+
+          {/* Botón Cerrar Sesión */}
+          <button
+            onClick={() => setShowCerrarSesionModal(true)}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#d32f2f",
+              fontSize: 12,
+              textDecoration: "underline",
+              cursor: "pointer",
+              padding: 0,
+              marginLeft: 8,
+            }}
+            title="Cerrar sesión"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      )}
+
+      {/* Modal de confirmación para cerrar sesión */}
+      {showCerrarSesionModal && (
+        <div
+          onClick={() => setShowCerrarSesionModal(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: 32,
+              minWidth: 320,
+              maxWidth: 400,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+              textAlign: "center",
+            }}
+          >
+            <h3 style={{ margin: "0 0 16px 0", color: "#1976d2" }}>
+              ¿Cerrar Sesión?
+            </h3>
+            <p style={{ margin: "0 0 24px 0", color: "#666" }}>
+              ¿Estás seguro de que deseas cerrar sesión?
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                onClick={() => setShowCerrarSesionModal(false)}
+                style={{
+                  padding: "10px 24px",
+                  background: "#e0e0e0",
+                  color: "#333",
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem("usuario");
+                  window.location.href = "/login";
+                }}
+                style={{
+                  padding: "10px 24px",
+                  background: "#d32f2f",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         </div>
       )}
