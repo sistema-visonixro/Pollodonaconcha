@@ -51,7 +51,7 @@ export default function ResultadosView({
   useEffect(() => {
     fetchDatos();
     fetchCajeros();
-  }, [desde, hasta]);
+  }, [desde, hasta, cajeroFiltro]);
 
   async function fetchCajeros() {
     try {
@@ -92,44 +92,86 @@ export default function ResultadosView({
 
   async function fetchDatos() {
     try {
-      let factQuery = supabase
-        .from("facturas")
-        .select("*")
-        .order("fecha_hora", { ascending: false });
-      let gastQuery = supabase
-        .from("gastos")
-        .select("*")
-        .order("fecha", { ascending: false });
+      // Normalizar filtros para incluir las 24 horas del día seleccionado
+      const desdeInicio = desde ? `${desde} 00:00:00` : null;
+      const hastaFin = hasta ? `${hasta} 23:59:59` : null;
 
-      if (desde && hasta) {
-        // Normalizar filtros para incluir las 24 horas del día seleccionado
-        const desdeInicio = `${desde} 00:00:00`;
-        const hastaFin = `${hasta} 23:59:59`;
+      // Función para obtener todos los registros con paginación
+      async function obtenerTodasLasFacturas() {
+        let todasLasFacturas: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
 
-        factQuery = supabase
-          .from("facturas")
-          .select("*")
-          .gte("fecha_hora", desdeInicio)
-          .lte("fecha_hora", hastaFin)
-          .order("fecha_hora", { ascending: false });
+        while (hayMasRegistros) {
+          let query = supabase
+            .from("facturas")
+            .select("*", { count: "exact" });
 
-        if (cajeroFiltro) {
-          factQuery = factQuery.eq("cajero_id", cajeroFiltro);
+          if (desdeInicio && hastaFin) {
+            query = query
+              .gte("fecha_hora", desdeInicio)
+              .lte("fecha_hora", hastaFin);
+          }
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error, count } = await query
+            .order("fecha_hora", { ascending: false })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todasLasFacturas = [...todasLasFacturas, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
         }
-
-        // Para tablas que usan campo "fecha" (sin hora) mantener comparación por día
-        gastQuery = supabase
-          .from("gastos")
-          .select("*")
-          .gte("fecha", desde)
-          .lte("fecha", hasta)
-          .order("fecha", { ascending: false });
+        return todasLasFacturas;
       }
 
-      const [{ data: factData }, { data: gastData }] = await Promise.all([
-        factQuery,
-        gastQuery,
+      async function obtenerTodosLosGastos() {
+        let todosLosGastos: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase
+            .from("gastos")
+            .select("*");
+
+          if (desde && hasta) {
+            query = query
+              .gte("fecha", desde)
+              .lte("fecha", hasta);
+          }
+
+          const { data, error } = await query
+            .order("fecha", { ascending: false })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todosLosGastos = [...todosLosGastos, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
+        }
+        return todosLosGastos;
+      }
+
+      const [factData, gastData] = await Promise.all([
+        obtenerTodasLasFacturas(),
+        obtenerTodosLosGastos(),
       ]);
+
       setFacturas(factData || []);
       setGastos(gastData || []);
       calcularMensual(factData || [], gastData || []);
@@ -744,23 +786,19 @@ export default function ResultadosView({
   }
 
   const mesesDisponibles = ventasMensuales.map((r) => r.mes);
-  const facturasFiltradas = mesFiltro
-    ? facturas.filter((f) => f.fecha_hora?.slice(0, 7) === mesFiltro)
-    : facturas;
-  const gastosFiltrados = mesFiltro
-    ? gastos.filter((g) => g.fecha?.slice(0, 7) === mesFiltro)
-    : gastos;
+  const facturasFiltradas = facturas;
+  const gastosFiltrados = gastos;
 
-  const totalVentas = facturas.reduce(
+  const totalVentas = facturasFiltradas.reduce(
     (sum, f) => sum + parseFloat(f.total || 0),
     0
   );
-  const totalGastos = gastos.reduce(
+  const totalGastos = gastosFiltrados.reduce(
     (sum, g) => sum + parseFloat(g.monto || 0),
     0
   );
-  const facturasCount = facturas.length;
-  const gastosCount = gastos.length;
+  const facturasCount = facturasFiltradas.length;
+  const gastosCount = gastosFiltrados.length;
 
   return (
     <div
@@ -1119,21 +1157,6 @@ export default function ResultadosView({
               onChange={(e) => setHasta(e.target.value)}
               className="filter-input"
             />
-          </div>
-          <div className="filter-group">
-            <label>📊 Mes:</label>
-            <select
-              value={mesFiltro}
-              onChange={(e) => setMesFiltro(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">Todos</option>
-              {mesesDisponibles.map((mes) => (
-                <option key={mes} value={mes}>
-                  {mes}
-                </option>
-              ))}
-            </select>
           </div>
           <div className="filter-group">
             <label>👤 Cajero:</label>
