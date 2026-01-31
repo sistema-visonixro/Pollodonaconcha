@@ -144,6 +144,10 @@ export default function ResultadosView({
             query = query.gte("fecha", desde).lte("fecha", hasta);
           }
 
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
           const { data, error } = await query
             .order("fecha", { ascending: false })
             .range(desde_pag, desde_pag + limite - 1);
@@ -160,14 +164,50 @@ export default function ResultadosView({
         return todosLosGastos;
       }
 
-      const [factData, gastData] = await Promise.all([
+      async function obtenerTodosLosPagos() {
+        let todosLosPagos: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("pagos").select("*");
+
+          if (desdeInicio && hastaFin) {
+            query = query
+              .gte("fecha_hora", desdeInicio)
+              .lte("fecha_hora", hastaFin);
+          }
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha_hora", { ascending: false })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todosLosPagos = [...todosLosPagos, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
+        }
+        return todosLosPagos;
+      }
+
+      const [factData, gastData, pagosData] = await Promise.all([
         obtenerTodasLasFacturas(),
         obtenerTodosLosGastos(),
+        obtenerTodosLosPagos(),
       ]);
 
       setFacturas(factData || []);
       setGastos(gastData || []);
-      calcularMensual(factData || [], gastData || []);
+      calcularMensual(factData || [], gastData || [], pagosData || []);
       calcularPorDia(factData || []);
       function calcularPorDia(facturas: any[]) {
         // Agrupar ventas por día
@@ -216,35 +256,145 @@ export default function ResultadosView({
       const desdeInicio = `${desde} 00:00:00`;
       const hastaFin = `${hasta} 23:59:59`;
 
-      // Consultas paralelas (incluyendo precio_dolar)
-      const [factRes, gastRes, pagosRes, cierresRes, precioDolarRes] =
-        await Promise.all([
-          supabase
-            .from("facturas")
-            .select("*")
+      // Funciones para obtener todos los registros con paginación
+      async function obtenerTodasLasFacturasReporte() {
+        let todasLasFacturas: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("facturas").select("*");
+
+          query = query
             .gte("fecha_hora", desdeInicio)
-            .lte("fecha_hora", hastaFin)
-            .order("fecha_hora", { ascending: true }),
-          supabase
-            .from("gastos")
-            .select("*")
-            .gte("fecha", desde)
-            .lte("fecha", hasta)
-            .order("fecha", { ascending: true }),
-          supabase
-            .from("pagos")
-            .select("*")
+            .lte("fecha_hora", hastaFin);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha_hora", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todasLasFacturas = [...todasLasFacturas, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
+        }
+        return todasLasFacturas;
+      }
+
+      async function obtenerTodosLosGastosReporte() {
+        let todosLosGastos: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("gastos").select("*");
+
+          query = query.gte("fecha", desde).lte("fecha", hasta);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todosLosGastos = [...todosLosGastos, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
+        }
+        return todosLosGastos;
+      }
+
+      async function obtenerTodosLosPagosReporte() {
+        let todosLosPagos: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("pagos").select("*");
+
+          query = query
             .gte("fecha_hora", desdeInicio)
-            .lte("fecha_hora", hastaFin)
-            .order("fecha_hora", { ascending: true }),
-          supabase
+            .lte("fecha_hora", hastaFin);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha_hora", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todosLosPagos = [...todosLosPagos, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
+        }
+        return todosLosPagos;
+      }
+
+      async function obtenerTodosLosCierresReporte() {
+        let todosLosCierres: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase
             .from("cierres")
             .select("*")
-            .eq("tipo_registro", "cierre")
-            // la columna `fecha` puede ser fecha o timestamp; usar comparador por día
-            .gte("fecha", desdeInicio)
-            .lte("fecha", hastaFin)
-            .order("fecha", { ascending: true }),
+            .eq("tipo_registro", "cierre");
+
+          query = query.gte("fecha", desdeInicio).lte("fecha", hastaFin);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) throw error;
+          if (data) {
+            todosLosCierres = [...todosLosCierres, ...data];
+            desde_pag += limite;
+            hayMasRegistros = data.length === limite;
+          } else {
+            hayMasRegistros = false;
+          }
+        }
+        return todosLosCierres;
+      }
+
+      // Consultas paralelas (incluyendo precio_dolar)
+      const [factData, gastData, pagosData, cierresData, precioDolarRes] =
+        await Promise.all([
+          obtenerTodasLasFacturasReporte(),
+          obtenerTodosLosGastosReporte(),
+          obtenerTodosLosPagosReporte(),
+          obtenerTodosLosCierresReporte(),
           supabase
             .from("precio_dolar")
             .select("valor")
@@ -257,42 +407,14 @@ export default function ResultadosView({
         ? Number(precioDolarRes.data.valor)
         : 0;
 
-      const factData = factRes.data || [];
-      const gastData = gastRes.data || [];
-      const pagosData = pagosRes.data || [];
-      const cierresData = cierresRes.data || [];
+      // Los datos ya vienen directamente de las funciones de paginación
 
       const totalFacturas = factData.length;
-      const totalVentas = factData.reduce((s: number, f: any) => {
-        const val =
-          f.total !== undefined && f.total !== null
-            ? Number(String(f.total).replace(/,/g, ""))
-            : 0;
-        return s + (isNaN(val) ? 0 : val);
-      }, 0);
-      const totalGastos = gastData.reduce(
-        (s: number, g: any) => s + parseFloat(g.monto || 0),
-        0,
-      );
-      const balanceReporte = totalVentas - totalGastos;
-      const rentabilidadPercent =
-        totalGastos > 0 ? (balanceReporte / totalGastos) * 100 : null;
 
-      // Desglose de pagos (separar dolares USD de Lps)
-      const pagosPorTipo: { [k: string]: number } = {};
-      let dolaresUSD = 0;
-      pagosData.forEach((p: any) => {
-        const tipo = p.tipo || "Desconocido";
-        if (tipo === "dolares") {
-          // Para dólares, acumular el valor en USD desde usd_monto
-          dolaresUSD += parseFloat(p.usd_monto || 0);
-        }
-        pagosPorTipo[tipo] =
-          (pagosPorTipo[tipo] || 0) + parseFloat(p.monto || 0);
-      });
-      const dolaresLps = pagosPorTipo["dolares"] || 0;
+      // IMPORTANTE: Primero calcular los pagos únicos por factura
+      // porque este será el total de ventas real
 
-      // Total de todos los pagos (raw) y cálculo de pagos únicos por factura
+      // Total de todos los pagos (raw)
       const totalPagosRaw = pagosData.reduce((s: number, p: any) => {
         const val =
           p.monto !== undefined && p.monto !== null
@@ -313,9 +435,12 @@ export default function ResultadosView({
         }
       >();
       pagosData.forEach((p: any) => {
-        const facturaKey = p.factura
-          ? String(p.factura)
-          : `__no_fact_${p.id || Math.random()}`;
+        // Buscar el número de factura en ambos campos posibles
+        const facturaKey = p.factura_venta
+          ? String(p.factura_venta)
+          : p.factura
+            ? String(p.factura)
+            : `__no_fact_${p.id || Math.random()}`;
         const monto =
           p.monto !== undefined && p.monto !== null
             ? Number(String(p.monto).replace(/,/g, ""))
@@ -349,6 +474,41 @@ export default function ResultadosView({
         0,
       );
 
+      // Usar el total de pagos únicos como el total de ventas real
+      // porque refleja correctamente las devoluciones y el dinero realmente recibido
+      const totalVentas = totalPagosUnique;
+
+      // Calcular total de ventas por facturas (para referencia)
+      const totalVentasPorFacturas = factData.reduce((s: number, f: any) => {
+        const val =
+          f.total !== undefined && f.total !== null
+            ? parseFloat(String(f.total).replace(/,/g, ""))
+            : 0;
+        return s + (isNaN(val) ? 0 : val);
+      }, 0);
+
+      const totalGastos = gastData.reduce(
+        (s: number, g: any) => s + parseFloat(g.monto || 0),
+        0,
+      );
+      const balanceReporte = totalVentas - totalGastos;
+      const rentabilidadPercent =
+        totalGastos > 0 ? (balanceReporte / totalGastos) * 100 : null;
+
+      // Desglose de pagos (separar dolares USD de Lps)
+      const pagosPorTipo: { [k: string]: number } = {};
+      let dolaresUSD = 0;
+      pagosData.forEach((p: any) => {
+        const tipo = p.tipo || "Desconocido";
+        if (tipo === "dolares") {
+          // Para dólares, acumular el valor en USD desde usd_monto
+          dolaresUSD += parseFloat(p.usd_monto || 0);
+        }
+        pagosPorTipo[tipo] =
+          (pagosPorTipo[tipo] || 0) + parseFloat(p.monto || 0);
+      });
+      const dolaresLps = pagosPorTipo["dolares"] || 0;
+
       // Debug: comparar facturas y pagos por factura (opcional)
       try {
         console.debug(
@@ -358,98 +518,383 @@ export default function ResultadosView({
           pagosData.length,
         );
         console.debug(
-          "ReportePDF: totalVentas (facturas)",
-          totalVentas,
+          "ReportePDF: totalVentasPorFacturas",
+          totalVentasPorFacturas,
           "totalPagosRaw (pagos)",
           totalPagosRaw,
-          "totalPagosUnique",
+          "totalPagosUnique/totalVentas",
           totalPagosUnique,
         );
       } catch (e) {}
 
       // Construir HTML para imprimir
-      const titulo = `Reporte Ventas ${desde} → ${hasta}`;
-      let html = `<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>`;
-      // indicar icono (si existe en /favicon-32.png)
-      html += `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />`;
-      html += `<style>body{font-family: Arial, Helvetica, sans-serif;margin:20px;color:#111}h1,h2{margin:0 0 8px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px;text-align:left}thead th{background:#f2f2f2} .section{margin-top:18px}.report-header{display:flex;align-items:center;gap:16px}.report-logo{width:84px;height:84px;object-fit:contain}.report-title{font-size:28px;font-weight:800}</style>`;
-      // Header con logo (intenta cargar /logo.png, si no existe se oculta)
-      html += `</head><body>`;
-      // intentar usar /favicon-32.png como logo; si falla, caer a /logo.svg
-      html += `<div class="report-header"><img class="report-logo" src="/favicon-32.png" alt="logo" onerror="this.onerror=null;this.src='/logo.svg'"/><div><div class="report-title">${NOMBRE_NEGOCIO_UPPER}</div><div style=\"margin-top:6px;color:#444\">${titulo}</div></div></div>`;
-      html += `<div class="section"><h2>Resumen</h2><table><tbody>`;
-      html += `<tr><th>Total facturas</th><td>${totalFacturas}</td></tr>`;
-      html += `<tr><th>Total ventas</th><td>L ${totalVentas.toFixed(
-        2,
-      )}</td></tr>`;
-      html += `<tr><th>Total gastos</th><td>L ${totalGastos.toFixed(
-        2,
-      )}</td></tr>`;
-      html += `<tr><th>Balance</th><td>L ${balanceReporte.toFixed(
-        2,
-      )}</td></tr>`;
-      html += `<tr><th>Rentabilidad</th><td>${
-        rentabilidadPercent !== null
-          ? rentabilidadPercent.toFixed(2) + "%"
-          : "N/A (sin gastos)"
-      }</td></tr>`;
-
-      html += `<div class="section"><h2>Pagos</h2>`;
-      if (precioDolar > 0) {
-        html += `<p style="background:#fff9e6;padding:8px;border-radius:4px;font-size:13px;"><b>Tipo de Cambio:</b> L ${precioDolar.toFixed(
-          2,
-        )} por $1.00 USD</p>`;
+      // Obtener nombre del cajero si hay filtro aplicado
+      let nombreCajeroFiltro = "";
+      if (cajeroFiltro) {
+        const cajeroEncontrado = cajeros.find(
+          (c: any) => c.id === cajeroFiltro,
+        );
+        nombreCajeroFiltro = cajeroEncontrado
+          ? ` - Cajero: ${cajeroEncontrado.nombre}`
+          : "";
       }
-      html += `<table><thead><tr><th>Tipo</th><th>Monto</th></tr></thead><tbody>`;
+      const titulo = `Reporte Ventas ${desde} → ${hasta}${nombreCajeroFiltro}`;
+      let html = `<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title>`;
+      html += `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />`;
+      html += `<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #1a202c;
+          padding: 20px;
+        }
+        .container {
+          max-width: 1400px;
+          margin: 0 auto;
+          background: white;
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 40px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        .header::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          right: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+        .header-content { position: relative; z-index: 1; }
+        .logo { width: 100px; height: 100px; margin: 0 auto 20px; }
+        .report-title { font-size: 42px; font-weight: 800; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .report-subtitle { font-size: 18px; opacity: 0.9; }
+        .content { padding: 40px; }
+        .kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+        .kpi-card {
+          background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+          border-radius: 15px;
+          padding: 25px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+          border-left: 5px solid;
+          transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-5px); }
+        .kpi-card.ventas { border-left-color: #10b981; }
+        .kpi-card.gastos { border-left-color: #ef4444; }
+        .kpi-card.balance { border-left-color: #3b82f6; }
+        .kpi-card.facturas { border-left-color: #f59e0b; }
+        .kpi-card.rentabilidad { border-left-color: #8b5cf6; }
+        .kpi-label {
+          font-size: 14px;
+          color: #64748b;
+          margin-bottom: 8px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .kpi-value {
+          font-size: 32px;
+          font-weight: 800;
+          color: #1a202c;
+        }
+        .kpi-icon {
+          font-size: 24px;
+          margin-bottom: 10px;
+        }
+        .section {
+          margin-bottom: 40px;
+          background: #f8fafc;
+          border-radius: 15px;
+          padding: 30px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .section-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #1a202c;
+          margin-bottom: 20px;
+          padding-bottom: 10px;
+          border-bottom: 3px solid #667eea;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .chart-container {
+          position: relative;
+          height: 300px;
+          margin: 20px 0;
+          background: white;
+          border-radius: 10px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          margin-top: 20px;
+          background: white;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        thead th {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 15px;
+          text-align: left;
+          font-weight: 600;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        tbody td {
+          padding: 12px 15px;
+          border-bottom: 1px solid #e2e8f0;
+          color: #475569;
+        }
+        tbody tr:hover {
+          background: #f8fafc;
+        }
+        tbody tr:last-child td {
+          border-bottom: none;
+        }
+        .total-row {
+          background: #fef3c7 !important;
+          font-weight: 700;
+          color: #1a202c !important;
+        }
+        .total-row td {
+          border-top: 3px solid #f59e0b;
+        }
+        .badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .table-scroll {
+          overflow-x: auto;
+          margin: 0 -20px;
+          padding: 0 20px;
+        }
+        .table-cierres {
+          font-size: 9px !important;
+          min-width: 100%;
+        }
+        .table-cierres th,
+        .table-cierres td {
+          padding: 8px 6px !important;
+          white-space: nowrap;
+          font-size: 9px !important;
+        }
+        @media print {
+          body { background: white; padding: 0; }
+          .container { box-shadow: none; border-radius: 0; }
+          .kpi-card, .section { break-inside: avoid; page-break-inside: avoid; }
+          .chart-container { 
+            height: 250px; 
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .section { page-break-inside: avoid; }
+          .table-scroll { overflow-x: visible; margin: 0; padding: 0; }
+          .table-cierres { font-size: 7px !important; }
+          .table-cierres th,
+          .table-cierres td { padding: 4px 3px !important; font-size: 7px !important; }
+          @page { size: landscape; margin: 10mm; }
+        }
+      </style>`;
+      html += `</head><body><div class="container">`;
+
+      // Header moderno
+      html += `<div class="header">
+        <div class="header-content">
+          <div class="report-title">📊 ${NOMBRE_NEGOCIO_UPPER}</div>
+          <div class="report-subtitle">${titulo}</div>
+          <div style="margin-top:10px;font-size:14px;opacity:0.8;">Generado: ${new Date().toLocaleDateString(
+            "es-HN",
+            {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            },
+          )}</div>
+        </div>
+      </div>`;
+
+      html += `<div class="content">`;
+
+      // KPIs Modernos
+      html += `<div class="kpi-grid">`;
+      html += `<div class="kpi-card ventas">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">Total Ventas</div>
+        <div class="kpi-value">L ${totalVentas.toLocaleString("es-HN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      </div>`;
+      html += `<div class="kpi-card gastos">
+        <div class="kpi-icon">💸</div>
+        <div class="kpi-label">Total Gastos</div>
+        <div class="kpi-value">L ${totalGastos.toLocaleString("es-HN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      </div>`;
+      html += `<div class="kpi-card balance">
+        <div class="kpi-icon">${balanceReporte >= 0 ? "✅" : "❌"}</div>
+        <div class="kpi-label">${balanceReporte >= 0 ? "Ganancia" : "Pérdida"}</div>
+        <div class="kpi-value">L ${balanceReporte.toLocaleString("es-HN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      </div>`;
+      html += `<div class="kpi-card facturas">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-label">Facturas</div>
+        <div class="kpi-value">${totalFacturas}</div>
+      </div>`;
+      html += `<div class="kpi-card rentabilidad">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-label">Rentabilidad</div>
+        <div class="kpi-value">${rentabilidadPercent !== null ? rentabilidadPercent.toFixed(1) + "%" : "N/A"}</div>
+      </div>`;
+      html += `</div>`;
+
+      // Sección de Pagos con gráfica
+      html += `<div class="section">
+        <div class="section-title">💳 Distribución de Pagos</div>`;
+
+      if (precioDolar > 0) {
+        html += `<div style="background:#fef3c7;padding:15px;border-radius:10px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+          <strong>💱 Tipo de Cambio:</strong> L ${precioDolar.toFixed(2)} por $1.00 USD
+        </div>`;
+      }
+
+      // Preparar datos para la gráfica
+      const pagoLabels: string[] = [];
+      const pagoMontos: number[] = [];
+
       const tipos = ["efectivo", "transferencia", "tarjeta"];
       tipos.forEach((t) => {
         const m = Number(pagosPorTipo[t] || 0);
         if (m > 0) {
-          const mFmt = m.toLocaleString("de-DE", { minimumFractionDigits: 2 });
           const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
-          html += `<tr><td>${tLabel}</td><td>L ${mFmt}</td></tr>`;
+          pagoLabels.push(tLabel);
+          pagoMontos.push(m);
         }
       });
-      // Dólares: mostrar USD, conversión y Lps
-      if (dolaresUSD > 0) {
-        const dolaresUSDFmt = dolaresUSD.toLocaleString("de-DE", {
-          minimumFractionDigits: 2,
-        });
-        const dolaresLpsFmt = dolaresLps.toLocaleString("de-DE", {
-          minimumFractionDigits: 2,
-        });
-        html += `<tr><td>Dólares</td><td><b>$ ${dolaresUSDFmt}</b> <span style="color:#666;font-size:12px;">(L ${dolaresLpsFmt})</span></td></tr>`;
+
+      if (dolaresLps > 0) {
+        pagoLabels.push("Dólares");
+        pagoMontos.push(dolaresLps);
       }
-      // Incluir otros tipos si existen
+
+      // Crear gráfica SVG tipo pastel para pagos
+      const totalPagosGrafica = pagoMontos.reduce((a, b) => a + b, 0);
+      const coloresPagos = [
+        "#10b981",
+        "#3b82f6",
+        "#f59e0b",
+        "#8b5cf6",
+        "#ec4899",
+        "#14b8a6",
+      ];
+      let currentAngle = 0;
+      let svgPathsPagos = "";
+      let legendPagos = "";
+
+      pagoMontos.forEach((monto, index) => {
+        const percentage = (monto / totalPagosGrafica) * 100;
+        const angle = (percentage / 100) * 360;
+        const endAngle = currentAngle + angle;
+
+        const startX =
+          150 + 120 * Math.cos(((currentAngle - 90) * Math.PI) / 180);
+        const startY =
+          150 + 120 * Math.sin(((currentAngle - 90) * Math.PI) / 180);
+        const endX = 150 + 120 * Math.cos(((endAngle - 90) * Math.PI) / 180);
+        const endY = 150 + 120 * Math.sin(((endAngle - 90) * Math.PI) / 180);
+
+        const largeArc = angle > 180 ? 1 : 0;
+
+        svgPathsPagos += `<path d="M 150 150 L ${startX} ${startY} A 120 120 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${coloresPagos[index]}" stroke="#fff" stroke-width="2"/>`;
+
+        legendPagos += `<div style="display:flex;align-items:center;gap:8px;margin:5px 0;"><div style="width:16px;height:16px;background:${coloresPagos[index]};border-radius:3px;"></div><span style="font-size:13px;">${pagoLabels[index]}: ${percentage.toFixed(1)}%</span></div>`;
+
+        currentAngle = endAngle;
+      });
+
+      html += `<div style="display:flex;gap:30px;align-items:center;margin:20px 0;padding:20px;background:white;border-radius:10px;">
+        <svg width="300" height="300" viewBox="0 0 300 300" style="flex-shrink:0;">
+          <text x="150" y="20" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a202c">Distribución de Pagos</text>
+          ${svgPathsPagos}
+        </svg>
+        <div style="flex:1;">${legendPagos}</div>
+      </div>`;
+
+      html += `<table><thead><tr><th>Tipo de Pago</th><th style="text-align:right;">Monto</th><th style="text-align:right;">% del Total</th></tr></thead><tbody>`;
+
+      tipos.forEach((t) => {
+        const m = Number(pagosPorTipo[t] || 0);
+        if (m > 0) {
+          const mFmt = m.toLocaleString("es-HN", { minimumFractionDigits: 2 });
+          const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
+          const porcentaje = ((m / totalPagosUnique) * 100).toFixed(1);
+          html += `<tr><td><span class="badge badge-info">${tLabel}</span></td><td style="text-align:right;">L ${mFmt}</td><td style="text-align:right;">${porcentaje}%</td></tr>`;
+        }
+      });
+
+      if (dolaresUSD > 0) {
+        const dolaresUSDFmt = dolaresUSD.toLocaleString("es-HN", {
+          minimumFractionDigits: 2,
+        });
+        const dolaresLpsFmt = dolaresLps.toLocaleString("es-HN", {
+          minimumFractionDigits: 2,
+        });
+        const porcentaje = ((dolaresLps / totalPagosUnique) * 100).toFixed(1);
+        html += `<tr><td><span class="badge badge-success">Dólares</span></td><td style="text-align:right;"><b>$ ${dolaresUSDFmt}</b> <span style="color:#64748b;font-size:11px;">(L ${dolaresLpsFmt})</span></td><td style="text-align:right;">${porcentaje}%</td></tr>`;
+      }
+
       Object.keys(pagosPorTipo).forEach((t) => {
         if (![...tipos, "dolares"].includes(t)) {
           const m = Number(pagosPorTipo[t] || 0);
           if (m > 0) {
-            const mFmt = m.toLocaleString("de-DE", {
+            const mFmt = m.toLocaleString("es-HN", {
               minimumFractionDigits: 2,
             });
             const tLabel = t.charAt(0).toUpperCase() + t.slice(1);
-            html += `<tr><td>${tLabel}</td><td>L ${mFmt}</td></tr>`;
+            const porcentaje = ((m / totalPagosUnique) * 100).toFixed(1);
+            html += `<tr><td><span class="badge badge-info">${tLabel}</span></td><td style="text-align:right;">L ${mFmt}</td><td style="text-align:right;">${porcentaje}%</td></tr>`;
           }
         }
       });
-      // Total de pagos en el resumen
+
       const totalPagosFmt = Number(totalPagosUnique || 0).toLocaleString(
-        "de-DE",
+        "es-HN",
         { minimumFractionDigits: 2 },
       );
-      html += `<tr><th style="text-align:right">Total Pagos (por factura única)</th><th>L ${totalPagosFmt}</th></tr>`;
-      // si es distinto, mostrar total raw como referencia
-      if (totalPagosRaw !== totalPagosUnique) {
-        const totalPagosRawFmt = Number(totalPagosRaw).toLocaleString("de-DE", {
-          minimumFractionDigits: 2,
-        });
-        html += `<tr><th style="text-align:right">Total Pagos (raw)</th><th>L ${totalPagosRawFmt}</th></tr>`;
-      }
+      html += `<tr class="total-row"><td><strong>TOTAL PAGOS</strong></td><td style="text-align:right;"><strong>L ${totalPagosFmt}</strong></td><td style="text-align:right;"><strong>100%</strong></td></tr>`;
       html += `</tbody></table></div>`;
 
-      // Sección VALOR DE VENTA POR CATEGORÍA
-      html += `<div class="section"><h2>💰 Valor de Venta por Categoría</h2>`;
+      // Sección VALOR DE VENTA POR CATEGORÍA con gráficas
+      html += `<div class="section">
+        <div class="section-title">🍗 Ventas por Categoría</div>`;
 
       // Calcular ventas por categoría y subcategoría consultando tabla productos
       const ventasPorCategoria: { [key: string]: number } = {
@@ -498,38 +943,84 @@ export default function ResultadosView({
         });
       }
 
-      // Calcular ventas usando datos reales de productos
+      // Crear mapa de pagos por factura para usar el monto real pagado
+      const montoRealPorFactura = new Map<string, number>();
+      pagosPorFacturaMap.forEach((value, key) => {
+        montoRealPorFactura.set(key, value.monto);
+      });
+
+      // Crear mapa de facturas por número para búsqueda rápida
+      const facturasMap = new Map<string, any>();
       factData.forEach((f: any) => {
-        if (f.productos) {
+        if (f.factura) {
+          facturasMap.set(String(f.factura), f);
+        }
+      });
+
+      // Calcular ventas SOLO de facturas que tienen pagos registrados
+      montoRealPorFactura.forEach((montoPagado, facturaKey) => {
+        const factura = facturasMap.get(facturaKey);
+
+        if (factura && factura.productos) {
           try {
             // Parsear el string JSON de productos
             const productosArray =
-              typeof f.productos === "string"
-                ? JSON.parse(f.productos)
-                : f.productos;
+              typeof factura.productos === "string"
+                ? JSON.parse(factura.productos)
+                : factura.productos;
 
-            if (Array.isArray(productosArray)) {
+            if (Array.isArray(productosArray) && productosArray.length > 0) {
+              // Calcular el total teórico sumando productos para distribuir proporcionalmente
+              let totalTeorico = 0;
+              const productosPorCategoria: { [key: string]: number } = {
+                comida: 0,
+                bebida: 0,
+                complemento: 0,
+              };
+              const productosPorSubcategoria: { [key: string]: number } = {};
+
               productosArray.forEach((prod: any) => {
                 const productoInfo = productosMap.get(prod.id);
                 if (productoInfo) {
                   const tipo = productoInfo.tipo || "comida";
                   const cantidad = prod.cantidad || 1;
                   const precio = prod.precio || 0;
-                  const total = precio * cantidad;
+                  const totalProd = precio * cantidad;
+                  totalTeorico += totalProd;
 
-                  // Sumar a categoría principal
-                  if (ventasPorCategoria[tipo] !== undefined) {
-                    ventasPorCategoria[tipo] += total;
+                  // Acumular por categoría
+                  if (productosPorCategoria[tipo] !== undefined) {
+                    productosPorCategoria[tipo] += totalProd;
                   }
 
-                  // Si es comida y tiene subcategoría, sumar a subcategoría
+                  // Acumular por subcategoría
                   if (tipo === "comida" && productoInfo.subcategoria) {
                     const subcat = productoInfo.subcategoria;
-                    ventasPorSubcategoria[subcat] =
-                      (ventasPorSubcategoria[subcat] || 0) + total;
+                    productosPorSubcategoria[subcat] =
+                      (productosPorSubcategoria[subcat] || 0) + totalProd;
                   }
                 }
               });
+
+              // Distribuir el total REAL PAGADO proporcionalmente
+              if (totalTeorico > 0) {
+                const factor = montoPagado / totalTeorico;
+
+                // Aplicar factor a categorías
+                Object.keys(productosPorCategoria).forEach((tipo) => {
+                  if (ventasPorCategoria[tipo] !== undefined) {
+                    ventasPorCategoria[tipo] +=
+                      productosPorCategoria[tipo] * factor;
+                  }
+                });
+
+                // Aplicar factor a subcategorías
+                Object.keys(productosPorSubcategoria).forEach((subcat) => {
+                  ventasPorSubcategoria[subcat] =
+                    (ventasPorSubcategoria[subcat] || 0) +
+                    productosPorSubcategoria[subcat] * factor;
+                });
+              }
             }
           } catch (e) {
             console.error("Error parseando productos para cálculo:", e);
@@ -537,197 +1028,317 @@ export default function ResultadosView({
         }
       });
 
+      // Preparar datos para gráficas
+      const categoriaLabels: string[] = [];
+      const categoriaMontos: number[] = [];
+
+      const categorias = [
+        { key: "comida", label: "Comidas", icon: "🍗" },
+        { key: "complemento", label: "Complementos", icon: "🍟" },
+        { key: "bebida", label: "Bebidas", icon: "🥤" },
+      ];
+
+      categorias.forEach(({ key }) => {
+        const total = ventasPorCategoria[key] || 0;
+        if (total > 0) {
+          categoriaLabels.push(key.charAt(0).toUpperCase() + key.slice(1));
+          categoriaMontos.push(total);
+        }
+      });
+
+      // Crear gráfica SVG tipo pastel para categorías
+      const totalCategoriasGrafica = categoriaMontos.reduce((a, b) => a + b, 0);
+      const coloresCategorias = [
+        "#f59e0b",
+        "#10b981",
+        "#3b82f6",
+        "#ec4899",
+        "#8b5cf6",
+      ];
+      let currentAngleCat = 0;
+      let svgPathsCat = "";
+      let legendCat = "";
+
+      categoriaMontos.forEach((monto, index) => {
+        const percentage = (monto / totalCategoriasGrafica) * 100;
+        const angle = (percentage / 100) * 360;
+        const endAngle = currentAngleCat + angle;
+
+        const startX =
+          150 + 120 * Math.cos(((currentAngleCat - 90) * Math.PI) / 180);
+        const startY =
+          150 + 120 * Math.sin(((currentAngleCat - 90) * Math.PI) / 180);
+        const endX = 150 + 120 * Math.cos(((endAngle - 90) * Math.PI) / 180);
+        const endY = 150 + 120 * Math.sin(((endAngle - 90) * Math.PI) / 180);
+
+        const largeArc = angle > 180 ? 1 : 0;
+
+        svgPathsCat += `<path d="M 150 150 L ${startX} ${startY} A 120 120 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${coloresCategorias[index]}" stroke="#fff" stroke-width="2"/>`;
+
+        legendCat += `<div style="display:flex;align-items:center;gap:8px;margin:5px 0;"><div style="width:16px;height:16px;background:${coloresCategorias[index]};border-radius:3px;"></div><span style="font-size:13px;">${categoriaLabels[index]}: ${percentage.toFixed(1)}%</span></div>`;
+
+        currentAngleCat = endAngle;
+      });
+
+      html += `<div style="display:flex;gap:30px;align-items:center;margin:20px 0;padding:20px;background:white;border-radius:10px;">
+        <svg width="300" height="300" viewBox="0 0 300 300" style="flex-shrink:0;">
+          <text x="150" y="20" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a202c">Ventas por Categoría</text>
+          ${svgPathsCat}
+        </svg>
+        <div style="flex:1;">${legendCat}</div>
+      </div>`;
+
       // Tabla de subcategorías de COMIDA
       const subcategorias = Object.keys(ventasPorSubcategoria).sort();
       if (subcategorias.length > 0) {
-        html += `<h3 style="margin-top:16px;color:#111;">Comidas por Subcategoría</h3>`;
-        html += `<table><thead><tr><th>Subcategoría</th><th>Total Ventas</th></tr></thead><tbody>`;
+        html += `<h3 style="margin:30px 0 15px;color:#1a202c;font-size:18px;font-weight:700;">🍗 Comidas por Subcategoría</h3>`;
+
+        // Crear gráfica SVG tipo pastel para subcategorías
+        const subcatMontos = subcategorias.map((s) => ventasPorSubcategoria[s]);
+        const totalSubcatGrafica = subcatMontos.reduce((a, b) => a + b, 0);
+        const coloresSubcat = [
+          "#667eea",
+          "#f59e0b",
+          "#10b981",
+          "#3b82f6",
+          "#ec4899",
+          "#8b5cf6",
+          "#14b8a6",
+          "#f97316",
+          "#06b6d4",
+          "#84cc16",
+          "#a855f7",
+          "#0ea5e9",
+          "#22c55e",
+          "#eab308",
+          "#ef4444",
+        ];
+        let currentAngleSub = 0;
+        let svgPathsSub = "";
+        let legendSub = "";
+
+        subcatMontos.forEach((monto, index) => {
+          const percentage = (monto / totalSubcatGrafica) * 100;
+          const angle = (percentage / 100) * 360;
+          const endAngle = currentAngleSub + angle;
+
+          const startX =
+            150 + 120 * Math.cos(((currentAngleSub - 90) * Math.PI) / 180);
+          const startY =
+            150 + 120 * Math.sin(((currentAngleSub - 90) * Math.PI) / 180);
+          const endX = 150 + 120 * Math.cos(((endAngle - 90) * Math.PI) / 180);
+          const endY = 150 + 120 * Math.sin(((endAngle - 90) * Math.PI) / 180);
+
+          const largeArc = angle > 180 ? 1 : 0;
+
+          svgPathsSub += `<path d="M 150 150 L ${startX} ${startY} A 120 120 0 ${largeArc} 1 ${endX} ${endY} Z" fill="${coloresSubcat[index % coloresSubcat.length]}" stroke="#fff" stroke-width="2"/>`;
+
+          legendSub += `<div style="display:flex;align-items:center;gap:6px;margin:3px 0;"><div style="width:14px;height:14px;background:${coloresSubcat[index % coloresSubcat.length]};border-radius:3px;"></div><span style="font-size:11px;">${subcategorias[index]}: ${percentage.toFixed(1)}%</span></div>`;
+
+          currentAngleSub = endAngle;
+        });
+
+        html += `<div style="display:flex;gap:20px;align-items:center;margin:20px 0;padding:20px;background:white;border-radius:10px;">
+          <svg width="280" height="280" viewBox="0 0 300 300" style="flex-shrink:0;">
+            <text x="150" y="20" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a202c">Subcategorías</text>
+            ${svgPathsSub}
+          </svg>
+          <div style="flex:1;max-height:260px;overflow-y:auto;">${legendSub}</div>
+        </div>`;
+
+        html += `<table><thead><tr><th>Subcategoría</th><th style="text-align:right;">Total Ventas</th><th style="text-align:right;">% del Total Comidas</th></tr></thead><tbody>`;
+        const totalComida = ventasPorCategoria["comida"] || 0;
         subcategorias.forEach((subcat) => {
           const total = ventasPorSubcategoria[subcat];
-          const totalFmt = total.toLocaleString("de-DE", {
+          const totalFmt = total.toLocaleString("es-HN", {
             minimumFractionDigits: 2,
           });
-          html += `<tr><td>${subcat}</td><td>L ${totalFmt}</td></tr>`;
+          const porcentaje =
+            totalComida > 0 ? ((total / totalComida) * 100).toFixed(1) : "0";
+          html += `<tr><td>${subcat}</td><td style="text-align:right;">L ${totalFmt}</td><td style="text-align:right;">${porcentaje}%</td></tr>`;
         });
         html += `</tbody></table>`;
       }
 
       // Tabla de categorías principales
-      html += `<h3 style="margin-top:16px;color:#111;">Total por Categoría</h3>`;
-      html += `<table><thead><tr><th>Categoría</th><th>Total Ventas</th></tr></thead><tbody>`;
-      const categorias = [
-        { key: "comida", label: "🍗 Comidas" },
-        { key: "complemento", label: "🍟 Complementos" },
-        { key: "bebida", label: "🥤 Bebidas" },
-      ];
-      categorias.forEach(({ key, label }) => {
-        const total = ventasPorCategoria[key] || 0;
-        if (total > 0) {
-          const totalFmt = total.toLocaleString("de-DE", {
-            minimumFractionDigits: 2,
-          });
-          html += `<tr><td>${label}</td><td>L ${totalFmt}</td></tr>`;
-        }
-      });
+      html += `<h3 style="margin:30px 0 15px;color:#1a202c;font-size:18px;font-weight:700;">📊 Resumen por Categoría</h3>`;
+      html += `<table><thead><tr><th>Categoría</th><th style="text-align:right;">Total Ventas</th><th style="text-align:right;">% del Total</th></tr></thead><tbody>`;
+
       const totalCategorias = Object.values(ventasPorCategoria).reduce(
         (sum, val) => sum + val,
         0,
       );
-      const totalCategoriasFmt = totalCategorias.toLocaleString("de-DE", {
+
+      categorias.forEach(({ key, label, icon }) => {
+        const total = ventasPorCategoria[key] || 0;
+        if (total > 0) {
+          const totalFmt = total.toLocaleString("es-HN", {
+            minimumFractionDigits: 2,
+          });
+          const porcentaje = ((total / totalCategorias) * 100).toFixed(1);
+          html += `<tr><td>${icon} ${label}</td><td style="text-align:right;">L ${totalFmt}</td><td style="text-align:right;">${porcentaje}%</td></tr>`;
+        }
+      });
+
+      const totalCategoriasFmt = totalCategorias.toLocaleString("es-HN", {
         minimumFractionDigits: 2,
       });
-      html += `<tr><th style="text-align:right">Total General</th><th>L ${totalCategoriasFmt}</th></tr>`;
+      html += `<tr class="total-row"><td><strong>TOTAL GENERAL</strong></td><td style="text-align:right;"><strong>L ${totalCategoriasFmt}</strong></td><td style="text-align:right;"><strong>100%</strong></td></tr>`;
       html += `</tbody></table></div>`;
 
-      html += `<div class="section"><h2>Historial de cierres</h2>`;
+      html += `<div class="section">
+        <div class="section-title">🔐 Historial de Cierres de Caja</div>`;
       if (cierresData.length === 0) {
-        html += `<p>No hay cierres en el rango seleccionado.</p>`;
+        html += `<p style="padding:20px;text-align:center;color:#64748b;">No hay cierres en el rango seleccionado.</p>`;
       } else {
-        html += `<table style="font-size:11px;"><thead><tr>`;
+        html += `<div class="table-scroll">`;
+        html += `<table class="table-cierres"><thead><tr>`;
         html += `<th>Fecha</th>`;
         html += `<th>Cajero</th>`;
         html += `<th>Caja</th>`;
-        html += `<th>Efectivo Reg.</th>`;
-        html += `<th>Efectivo Día</th>`;
-        html += `<th>Tarjeta Reg.</th>`;
-        html += `<th>Tarjeta Día</th>`;
-        html += `<th>Transf. Reg.</th>`;
-        html += `<th>Transf. Día</th>`;
-        html += `<th>Dólares Reg.</th>`;
-        html += `<th>Dólares Día</th>`;
-        html += `<th>Diferencia</th>`;
+        html += `<th style="text-align:right;">Efectivo Reg.</th>`;
+        html += `<th style="text-align:right;">Efectivo Día</th>`;
+        html += `<th style="text-align:right;">Tarjeta Reg.</th>`;
+        html += `<th style="text-align:right;">Tarjeta Día</th>`;
+        html += `<th style="text-align:right;">Transf. Reg.</th>`;
+        html += `<th style="text-align:right;">Transf. Día</th>`;
+        html += `<th style="text-align:right;">Dólares Reg.</th>`;
+        html += `<th style="text-align:right;">Dólares Día</th>`;
+        html += `<th style="text-align:right;">Total Reg.</th>`;
+        html += `<th style="text-align:right;">Total Día</th>`;
+        html += `<th style="text-align:right;">Diferencia</th>`;
         html += `<th>Observación</th>`;
-        html += `<th>Referencia</th>`;
         html += `</tr></thead><tbody>`;
         cierresData.forEach((c: any) => {
-          const fecha = c.fecha ? c.fecha.slice(0, 19).replace("T", " ") : "";
+          const fecha = c.fecha ? c.fecha.slice(0, 16).replace("T", " ") : "";
           const diferencia = parseFloat(c.diferencia || 0);
           const difColor =
             diferencia > 0 ? "#388e3c" : diferencia < 0 ? "#d32f2f" : "#111";
+
+          // Calcular totales incluyendo dólares convertidos a Lempiras
+          const dolaresRegLps =
+            parseFloat(c.dolares_registrado || 0) * precioDolar;
+          const dolaresDiaLps = parseFloat(c.dolares_dia || 0) * precioDolar;
+
+          const totalRegistrado =
+            parseFloat(c.efectivo_registrado || 0) +
+            parseFloat(c.monto_tarjeta_registrado || 0) +
+            parseFloat(c.transferencias_registradas || 0) +
+            dolaresRegLps;
+
+          const totalVentaDia =
+            parseFloat(c.efectivo_dia || 0) +
+            parseFloat(c.monto_tarjeta_dia || 0) +
+            parseFloat(c.transferencias_dia || 0) +
+            dolaresDiaLps;
+
           html += `<tr>`;
-          html += `<td>${fecha}</td>`;
+          html += `<td style="font-size:10px;">${fecha}</td>`;
           html += `<td>${c.cajero || ""}</td>`;
           html += `<td>${c.caja || ""}</td>`;
-          html += `<td>L ${parseFloat(c.efectivo_registrado || 0).toFixed(
-            2,
-          )}</td>`;
-          html += `<td>L ${parseFloat(c.efectivo_dia || 0).toFixed(2)}</td>`;
-          html += `<td>L ${parseFloat(c.monto_tarjeta_registrado || 0).toFixed(
-            2,
-          )}</td>`;
-          html += `<td>L ${parseFloat(c.monto_tarjeta_dia || 0).toFixed(
-            2,
-          )}</td>`;
-          html += `<td>L ${parseFloat(
-            c.transferencias_registradas || 0,
-          ).toFixed(2)}</td>`;
-          html += `<td>L ${parseFloat(c.transferencias_dia || 0).toFixed(
-            2,
-          )}</td>`;
-          html += `<td>$ ${parseFloat(c.dolares_registrado || 0).toFixed(
-            2,
-          )}</td>`;
-          html += `<td>$ ${parseFloat(c.dolares_dia || 0).toFixed(2)}</td>`;
-          html += `<td style="color:${difColor};font-weight:700;">L ${diferencia.toFixed(
-            2,
-          )}</td>`;
-          html += `<td>${c.observacion || ""}</td>`;
-          html += `<td>${c.referencia_aclaracion || ""}</td>`;
+          html += `<td style="text-align:right;">L ${parseFloat(c.efectivo_registrado || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">L ${parseFloat(c.efectivo_dia || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">L ${parseFloat(c.monto_tarjeta_registrado || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">L ${parseFloat(c.monto_tarjeta_dia || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">L ${parseFloat(c.transferencias_registradas || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">L ${parseFloat(c.transferencias_dia || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">$ ${parseFloat(c.dolares_registrado || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;">$ ${parseFloat(c.dolares_dia || 0).toFixed(2)}</td>`;
+          html += `<td style="text-align:right;font-weight:700;">L ${totalRegistrado.toFixed(2)}</td>`;
+          html += `<td style="text-align:right;font-weight:700;">L ${totalVentaDia.toFixed(2)}</td>`;
+          html += `<td style="text-align:right;color:${difColor};font-weight:700;">L ${diferencia.toFixed(2)}</td>`;
+          html += `<td style="font-size:10px;">${c.observacion || "—"}</td>`;
           html += `</tr>`;
         });
-        html += `</tbody></table>`;
-      }
-      html += `</div>`;
 
-      // Tabla de ventas (facturas)
-      html += `<div class="section"><h2>Tabla de Ventas Realizadas</h2>`;
-      if (factData.length === 0)
-        html += `<p>No hay ventas en el rango seleccionado.</p>`;
-      else {
-        html += `<table><thead><tr><th>Fecha</th><th>Factura</th><th>Cliente</th><th>Cajero</th><th>Total</th></tr></thead><tbody>`;
-        factData.forEach((f: any) => {
-          const fecha = f.fecha_hora
-            ? f.fecha_hora.replace("T", " ").slice(0, 19)
-            : "";
-          const totalFmt = Number(f.total || 0).toLocaleString("de-DE", {
-            minimumFractionDigits: 2,
-          });
-          html += `<tr><td>${fecha}</td><td>${f.factura || ""}</td><td>${
-            f.cliente || ""
-          }</td><td>${f.cajero || ""}</td><td>L ${totalFmt}</td></tr>`;
-        });
-        // Fila de total de ventas
-        const totalVentasFmt = Number(totalVentas || 0).toLocaleString(
-          "de-DE",
-          { minimumFractionDigits: 2 },
+        // Calcular totales generales de cierres
+        const totalesCierres = cierresData.reduce(
+          (acc: any, c: any) => {
+            const dolaresRegLps =
+              parseFloat(c.dolares_registrado || 0) * precioDolar;
+            const dolaresDiaLps = parseFloat(c.dolares_dia || 0) * precioDolar;
+
+            return {
+              efectivoReg:
+                acc.efectivoReg + parseFloat(c.efectivo_registrado || 0),
+              efectivoDia: acc.efectivoDia + parseFloat(c.efectivo_dia || 0),
+              tarjetaReg:
+                acc.tarjetaReg + parseFloat(c.monto_tarjeta_registrado || 0),
+              tarjetaDia: acc.tarjetaDia + parseFloat(c.monto_tarjeta_dia || 0),
+              transfReg:
+                acc.transfReg + parseFloat(c.transferencias_registradas || 0),
+              transfDia: acc.transfDia + parseFloat(c.transferencias_dia || 0),
+              dolaresReg:
+                acc.dolaresReg + parseFloat(c.dolares_registrado || 0),
+              dolaresDia: acc.dolaresDia + parseFloat(c.dolares_dia || 0),
+              totalReg:
+                acc.totalReg +
+                parseFloat(c.efectivo_registrado || 0) +
+                parseFloat(c.monto_tarjeta_registrado || 0) +
+                parseFloat(c.transferencias_registradas || 0) +
+                dolaresRegLps,
+              totalDia:
+                acc.totalDia +
+                parseFloat(c.efectivo_dia || 0) +
+                parseFloat(c.monto_tarjeta_dia || 0) +
+                parseFloat(c.transferencias_dia || 0) +
+                dolaresDiaLps,
+              diferencia: acc.diferencia + parseFloat(c.diferencia || 0),
+            };
+          },
+          {
+            efectivoReg: 0,
+            efectivoDia: 0,
+            tarjetaReg: 0,
+            tarjetaDia: 0,
+            transfReg: 0,
+            transfDia: 0,
+            dolaresReg: 0,
+            dolaresDia: 0,
+            totalReg: 0,
+            totalDia: 0,
+            diferencia: 0,
+          },
         );
-        html += `<tr><th colspan="4" style="text-align:right">Total Ventas</th><th>L ${totalVentasFmt}</th></tr>`;
-        html += `</tbody></table>`;
+
+        // Fila de totales
+        const difTotalColorCierres =
+          totalesCierres.diferencia > 0
+            ? "#10b981"
+            : totalesCierres.diferencia < 0
+              ? "#ef4444"
+              : "#1a202c";
+        html += `<tr class="total-row">`;
+        html += `<th colspan="3" style="text-align:right;">TOTALES:</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.efectivoReg.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.efectivoDia.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.tarjetaReg.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.tarjetaDia.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.transfReg.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.transfDia.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">$ ${totalesCierres.dolaresReg.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">$ ${totalesCierres.dolaresDia.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.totalReg.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;">L ${totalesCierres.totalDia.toFixed(2)}</th>`;
+        html += `<th style="text-align:right;color:${difTotalColorCierres};">L ${totalesCierres.diferencia.toFixed(2)}</th>`;
+        html += `<th></th>`;
+        html += `</tr>`;
+
+        html += `</tbody></table></div>`;
       }
       html += `</div>`;
 
-      // Tabla de Gastos: incluir detalle de los gastos en el rango seleccionado
-      html += `<div class="section"><h2>Tabla de Gastos</h2>`;
-      if (gastData.length === 0)
-        html += `<p>No hay gastos en el rango seleccionado.</p>`;
-      else {
-        html += `<table><thead><tr><th>Fecha</th><th>Monto</th><th>Motivo</th></tr></thead><tbody>`;
-        gastData.forEach((g: any) => {
-          const fecha = g.fecha
-            ? g.fecha.replace
-              ? g.fecha.replace("T", " ").slice(0, 19)
-              : g.fecha
-            : "";
-          const monto = Number(g.monto || 0).toLocaleString("de-DE", {
-            minimumFractionDigits: 2,
-          });
-          const motivo = g.motivo || "";
-          html += `<tr><td>${fecha}</td><td>L ${monto}</td><td>${motivo}</td></tr>`;
-        });
-        html += `</tbody></table>`;
-      }
+      // Cerrar contenedor
+      html += `</div></div>`;
 
-      // Tabla de pagos
-      html += `<div class="section"><h2>Tabla de Pagos (Detalle)</h2>`;
-      if (pagosData.length === 0)
-        html += `<p>No hay pagos en el rango seleccionado.</p>`;
-      else {
-        // Mostrar todos los pagos con detalles
-        html += `<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Factura</th><th>Banco</th><th>Tarjeta</th><th>Ref.</th><th>Monto</th></tr></thead><tbody>`;
-        pagosData.forEach((p: any) => {
-          const fecha = p.fecha_hora
-            ? p.fecha_hora.replace
-              ? p.fecha_hora.replace("T", " ").slice(0, 19)
-              : p.fecha_hora
-            : "";
-          const tipo = p.tipo || "";
-          const factura = p.factura_venta || p.factura || "";
-          const banco = p.banco || "-";
-          const tarjeta = p.tarjeta ? `****${p.tarjeta}` : "-";
-          const referencia = p.referencia || "-";
-          let montoDisplay = "";
-          if (tipo === "dolares" && p.usd_monto) {
-            const usd = Number(p.usd_monto || 0).toFixed(2);
-            const lps = Number(p.monto || 0).toFixed(2);
-            montoDisplay = `<b>$ ${usd}</b> <span style="color:#666;font-size:11px;">(L ${lps})</span>`;
-          } else {
-            montoDisplay = `L ${Number(p.monto || 0).toFixed(2)}`;
-          }
-          html += `<tr><td>${fecha}</td><td>${tipo}</td><td>${factura}</td><td style="font-size:11px;">${banco}</td><td>${tarjeta}</td><td style="font-size:11px;">${referencia}</td><td>${montoDisplay}</td></tr>`;
-        });
-        // Fila de totales al final de la tabla de pagos
-        html += `<tr><th colspan="6" style="text-align:right">Total Pagos</th><th>L ${totalPagosRaw.toFixed(
-          2,
-        )}</th></tr>`;
-        html += `</tbody></table>`;
-      }
-      html += `</div>`;
+      html += `</body></html>`;
 
       // Reemplazar contenido de la ventana ya abierta y lanzar print
       win.document.open();
       win.document.write(html);
       win.document.close();
       win.focus();
+      // Las gráficas SVG se muestran inmediatamente, no necesitan tiempo de carga
       setTimeout(() => {
         win.print();
       }, 500);
@@ -743,11 +1354,375 @@ export default function ResultadosView({
     }
   }
 
-  function calcularMensual(facturas: any[], gastos: any[]) {
+  async function generarReporteFacturas() {
+    if (!desde || !hasta) {
+      alert(
+        "Por favor selecciona las fechas Desde y Hasta antes de generar el reporte.",
+      );
+      return;
+    }
+
+    const win = window.open("", "_blank");
+    if (!win) {
+      alert(
+        "Popup bloqueado. Por favor permite popups o usa la opción alternativa.",
+      );
+      return;
+    }
+    win.document.write(
+      `<!doctype html><html><head><meta charset="utf-8"><title>Generando reporte...</title></head><body><h3>Cargando reporte...</h3></body></html>`,
+    );
+    win.document.close();
+
+    try {
+      const desdeInicio = `${desde} 00:00:00`;
+      const hastaFin = `${hasta} 23:59:59`;
+
+      // Obtener todas las facturas con paginación
+      async function obtenerTodasLasFacturasReporte() {
+        let todasLasFacturas: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("facturas").select("*");
+
+          query = query
+            .gte("fecha_hora", desdeInicio)
+            .lte("fecha_hora", hastaFin);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha_hora", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) {
+            console.error("Error obteniendo facturas:", error);
+            break;
+          }
+
+          if (!data || data.length === 0) {
+            hayMasRegistros = false;
+          } else {
+            todasLasFacturas = todasLasFacturas.concat(data);
+            desde_pag += limite;
+            if (data.length < limite) {
+              hayMasRegistros = false;
+            }
+          }
+        }
+
+        return todasLasFacturas;
+      }
+
+      const facturas_reporte = await obtenerTodasLasFacturasReporte();
+      const nombreCajero = cajeroFiltro
+        ? cajeros.find((c) => c.id === cajeroFiltro)?.nombre || "Sin nombre"
+        : "";
+
+      let html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de Facturas</title></head><body style="margin:0;padding:20px;font-family:Arial,sans-serif;font-size:12px;background:#fff;">`;
+      html += `<div style="max-width:1200px;margin:0 auto;">`;
+      html += `<h1 style="text-align:center;color:#333;">📋 Reporte de Facturas</h1>`;
+      html += `<p style="text-align:center;color:#666;margin-bottom:20px;">Del ${desde} al ${hasta}${cajeroFiltro ? ` - Cajero: ${nombreCajero}` : ""}</p>`;
+
+      html += `<h2 style="color:#333;border-bottom:2px solid #ddd;padding-bottom:5px;margin-top:30px;">Tabla de Ventas Realizadas</h2>`;
+      html += `<table style="width:100%;border-collapse:collapse;margin-top:10px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:8px;text-align:left;">#</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Factura</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Cliente</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Fecha/Hora</th><th style="border:1px solid #ccc;padding:8px;text-align:right;">Total (L)</th></tr></thead><tbody>`;
+
+      facturas_reporte.forEach((f, i) => {
+        const total = parseFloat(String(f.total || 0).replace(/,/g, ""));
+        const formattedTotal = total.toLocaleString("de-DE", {
+          minimumFractionDigits: 2,
+        });
+        html += `<tr><td style="border:1px solid #ccc;padding:8px;">${i + 1}</td><td style="border:1px solid #ccc;padding:8px;">${f.numero_factura || f.id}</td><td style="border:1px solid #ccc;padding:8px;">${f.cliente || "—"}</td><td style="border:1px solid #ccc;padding:8px;">${f.fecha_hora?.slice(0, 16).replace("T", " ") || "—"}</td><td style="border:1px solid #ccc;padding:8px;text-align:right;">${formattedTotal}</td></tr>`;
+      });
+
+      const totalFacturas = facturas_reporte.reduce((sum, f) => {
+        const total = parseFloat(String(f.total || 0).replace(/,/g, ""));
+        return sum + (isNaN(total) ? 0 : total);
+      }, 0);
+      html += `<tr style="background:#ffffcc;font-weight:bold;"><td colspan="4" style="border:1px solid #ccc;padding:8px;text-align:right;">TOTAL:</td><td style="border:1px solid #ccc;padding:8px;text-align:right;">L ${totalFacturas.toLocaleString("de-DE", { minimumFractionDigits: 2 })}</td></tr>`;
+      html += `</tbody></table>`;
+
+      html += `</div></body></html>`;
+
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+      }, 500);
+    } catch (error) {
+      console.error("Error generando reporte de facturas:", error);
+      try {
+        win.document.body.innerHTML =
+          "<p>Error al generar el reporte. Revisa la consola para más detalles.</p>";
+      } catch (e) {}
+      alert(
+        "Error al generar el reporte. Revisa la consola para más detalles.",
+      );
+    }
+  }
+
+  async function generarReporteGastos() {
+    if (!desde || !hasta) {
+      alert(
+        "Por favor selecciona las fechas Desde y Hasta antes de generar el reporte.",
+      );
+      return;
+    }
+
+    const win = window.open("", "_blank");
+    if (!win) {
+      alert(
+        "Popup bloqueado. Por favor permite popups o usa la opción alternativa.",
+      );
+      return;
+    }
+    win.document.write(
+      `<!doctype html><html><head><meta charset="utf-8"><title>Generando reporte...</title></head><body><h3>Cargando reporte...</h3></body></html>`,
+    );
+    win.document.close();
+
+    try {
+      const desdeInicio = `${desde} 00:00:00`;
+      const hastaFin = `${hasta} 23:59:59`;
+
+      // Obtener todos los gastos con paginación
+      async function obtenerTodosLosGastosReporte() {
+        let todosLosGastos: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("gastos").select("*");
+
+          query = query
+            .gte("fecha_hora", desdeInicio)
+            .lte("fecha_hora", hastaFin);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha_hora", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) {
+            console.error("Error obteniendo gastos:", error);
+            break;
+          }
+
+          if (!data || data.length === 0) {
+            hayMasRegistros = false;
+          } else {
+            todosLosGastos = todosLosGastos.concat(data);
+            desde_pag += limite;
+            if (data.length < limite) {
+              hayMasRegistros = false;
+            }
+          }
+        }
+
+        return todosLosGastos;
+      }
+
+      const gastos_reporte = await obtenerTodosLosGastosReporte();
+      const nombreCajero = cajeroFiltro
+        ? cajeros.find((c) => c.id === cajeroFiltro)?.nombre || "Sin nombre"
+        : "";
+
+      let html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de Gastos</title></head><body style="margin:0;padding:20px;font-family:Arial,sans-serif;font-size:12px;background:#fff;">`;
+      html += `<div style="max-width:1200px;margin:0 auto;">`;
+      html += `<h1 style="text-align:center;color:#333;">💸 Reporte de Gastos</h1>`;
+      html += `<p style="text-align:center;color:#666;margin-bottom:20px;">Del ${desde} al ${hasta}${cajeroFiltro ? ` - Cajero: ${nombreCajero}` : ""}</p>`;
+
+      html += `<h2 style="color:#333;border-bottom:2px solid #ddd;padding-bottom:5px;margin-top:30px;">Tabla de Gastos</h2>`;
+      html += `<table style="width:100%;border-collapse:collapse;margin-top:10px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:8px;text-align:left;">#</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Descripción</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Fecha/Hora</th><th style="border:1px solid #ccc;padding:8px;text-align:right;">Monto (L)</th></tr></thead><tbody>`;
+
+      gastos_reporte.forEach((g, i) => {
+        const monto = parseFloat(String(g.monto || 0).replace(/,/g, ""));
+        const formattedMonto = monto.toLocaleString("de-DE", {
+          minimumFractionDigits: 2,
+        });
+        html += `<tr><td style="border:1px solid #ccc;padding:8px;">${i + 1}</td><td style="border:1px solid #ccc;padding:8px;">${g.descripcion || "—"}</td><td style="border:1px solid #ccc;padding:8px;">${g.fecha_hora?.slice(0, 16).replace("T", " ") || "—"}</td><td style="border:1px solid #ccc;padding:8px;text-align:right;">${formattedMonto}</td></tr>`;
+      });
+
+      const totalGastos = gastos_reporte.reduce((sum, g) => {
+        const monto = parseFloat(String(g.monto || 0).replace(/,/g, ""));
+        return sum + (isNaN(monto) ? 0 : monto);
+      }, 0);
+      html += `<tr style="background:#ffffcc;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:8px;text-align:right;">TOTAL:</td><td style="border:1px solid #ccc;padding:8px;text-align:right;">L ${totalGastos.toLocaleString("de-DE", { minimumFractionDigits: 2 })}</td></tr>`;
+      html += `</tbody></table>`;
+
+      html += `</div></body></html>`;
+
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+      }, 500);
+    } catch (error) {
+      console.error("Error generando reporte de gastos:", error);
+      try {
+        win.document.body.innerHTML =
+          "<p>Error al generar el reporte. Revisa la consola para más detalles.</p>";
+      } catch (e) {}
+      alert(
+        "Error al generar el reporte. Revisa la consola para más detalles.",
+      );
+    }
+  }
+
+  async function generarReportePagos() {
+    if (!desde || !hasta) {
+      alert(
+        "Por favor selecciona las fechas Desde y Hasta antes de generar el reporte.",
+      );
+      return;
+    }
+
+    const win = window.open("", "_blank");
+    if (!win) {
+      alert(
+        "Popup bloqueado. Por favor permite popups o usa la opción alternativa.",
+      );
+      return;
+    }
+    win.document.write(
+      `<!doctype html><html><head><meta charset="utf-8"><title>Generando reporte...</title></head><body><h3>Cargando reporte...</h3></body></html>`,
+    );
+    win.document.close();
+
+    try {
+      const desdeInicio = `${desde} 00:00:00`;
+      const hastaFin = `${hasta} 23:59:59`;
+
+      // Obtener todos los pagos con paginación
+      async function obtenerTodosLosPagosReporte() {
+        let todosLosPagos: any[] = [];
+        let desde_pag = 0;
+        const limite = 1000;
+        let hayMasRegistros = true;
+
+        while (hayMasRegistros) {
+          let query = supabase.from("pagos").select("*");
+
+          query = query
+            .gte("fecha_hora", desdeInicio)
+            .lte("fecha_hora", hastaFin);
+
+          if (cajeroFiltro) {
+            query = query.eq("cajero_id", cajeroFiltro);
+          }
+
+          const { data, error } = await query
+            .order("fecha_hora", { ascending: true })
+            .range(desde_pag, desde_pag + limite - 1);
+
+          if (error) {
+            console.error("Error obteniendo pagos:", error);
+            break;
+          }
+
+          if (!data || data.length === 0) {
+            hayMasRegistros = false;
+          } else {
+            todosLosPagos = todosLosPagos.concat(data);
+            desde_pag += limite;
+            if (data.length < limite) {
+              hayMasRegistros = false;
+            }
+          }
+        }
+
+        return todosLosPagos;
+      }
+
+      const pagos_reporte = await obtenerTodosLosPagosReporte();
+      const nombreCajero = cajeroFiltro
+        ? cajeros.find((c) => c.id === cajeroFiltro)?.nombre || "Sin nombre"
+        : "";
+
+      let html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte de Pagos</title></head><body style="margin:0;padding:20px;font-family:Arial,sans-serif;font-size:12px;background:#fff;">`;
+      html += `<div style="max-width:1200px;margin:0 auto;">`;
+      html += `<h1 style="text-align:center;color:#333;">💳 Reporte de Pagos (Detalle)</h1>`;
+      html += `<p style="text-align:center;color:#666;margin-bottom:20px;">Del ${desde} al ${hasta}${cajeroFiltro ? ` - Cajero: ${nombreCajero}` : ""}</p>`;
+
+      html += `<h2 style="color:#333;border-bottom:2px solid #ddd;padding-bottom:5px;margin-top:30px;">Tabla de Pagos (Detalle)</h2>`;
+      html += `<table style="width:100%;border-collapse:collapse;margin-top:10px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:8px;text-align:left;">#</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Factura</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Tipo</th><th style="border:1px solid #ccc;padding:8px;text-align:left;">Fecha/Hora</th><th style="border:1px solid #ccc;padding:8px;text-align:right;">Monto (L)</th></tr></thead><tbody>`;
+
+      pagos_reporte.forEach((p, i) => {
+        const monto = parseFloat(String(p.monto || 0).replace(/,/g, ""));
+        const formattedMonto = monto.toLocaleString("de-DE", {
+          minimumFractionDigits: 2,
+        });
+        html += `<tr><td style="border:1px solid #ccc;padding:8px;">${i + 1}</td><td style="border:1px solid #ccc;padding:8px;">${p.factura_venta || p.factura || "—"}</td><td style="border:1px solid #ccc;padding:8px;">${p.metodo_pago || "—"}</td><td style="border:1px solid #ccc;padding:8px;">${p.fecha_hora?.slice(0, 16).replace("T", " ") || "—"}</td><td style="border:1px solid #ccc;padding:8px;text-align:right;">${formattedMonto}</td></tr>`;
+      });
+
+      const totalPagos = pagos_reporte.reduce((sum, p) => {
+        const monto = parseFloat(String(p.monto || 0).replace(/,/g, ""));
+        return sum + (isNaN(monto) ? 0 : monto);
+      }, 0);
+      html += `<tr style="background:#ffffcc;font-weight:bold;"><td colspan="4" style="border:1px solid #ccc;padding:8px;text-align:right;">TOTAL:</td><td style="border:1px solid #ccc;padding:8px;text-align:right;">L ${totalPagos.toLocaleString("de-DE", { minimumFractionDigits: 2 })}</td></tr>`;
+      html += `</tbody></table>`;
+
+      html += `</div></body></html>`;
+
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+      }, 500);
+    } catch (error) {
+      console.error("Error generando reporte de pagos:", error);
+      try {
+        win.document.body.innerHTML =
+          "<p>Error al generar el reporte. Revisa la consola para más detalles.</p>";
+      } catch (e) {}
+      alert(
+        "Error al generar el reporte. Revisa la consola para más detalles.",
+      );
+    }
+  }
+
+  function calcularMensual(_facturas: any[], gastos: any[], pagos: any[]) {
+    // Calcular total de ventas basado en pagos únicos por factura
+    const pagosPorFacturaMap = new Map<string, number>();
+    pagos.forEach((p: any) => {
+      const facturaKey =
+        p.factura || p.factura_venta || `__no_fact_${p.id || Math.random()}`;
+      const monto = parseFloat(String(p.monto || 0).replace(/,/g, ""));
+      if (!isNaN(monto)) {
+        pagosPorFacturaMap.set(
+          facturaKey,
+          (pagosPorFacturaMap.get(facturaKey) || 0) + monto,
+        );
+      }
+    });
+    const totalVentasReal = Array.from(pagosPorFacturaMap.values()).reduce(
+      (sum, monto) => sum + monto,
+      0,
+    );
+
+    // Calcular ventas por mes usando pagos
     const ventasPorMes: { [mes: string]: number } = {};
-    facturas.forEach((f) => {
-      const mes = f.fecha_hora?.slice(0, 7);
-      ventasPorMes[mes] = (ventasPorMes[mes] || 0) + parseFloat(f.total || 0);
+    pagos.forEach((p: any) => {
+      const mes = (p.fecha_hora || p.fecha || "").slice(0, 7);
+      const monto = parseFloat(String(p.monto || 0).replace(/,/g, ""));
+      if (mes && !isNaN(monto)) {
+        ventasPorMes[mes] = (ventasPorMes[mes] || 0) + monto;
+      }
     });
 
     const gastosPorMes: { [mes: string]: number } = {};
@@ -767,28 +1742,22 @@ export default function ResultadosView({
     }));
 
     setVentasMensuales(resumen);
-    const totalVentas = facturas.reduce(
-      (sum, f) => sum + parseFloat(f.total || 0),
-      0,
-    );
     const totalGastos = gastos.reduce(
       (sum, g) => sum + parseFloat(g.monto || 0),
       0,
     );
-    setBalance(totalVentas - totalGastos);
+    setBalance(totalVentasReal - totalGastos);
   }
 
   const facturasFiltradas = facturas;
   const gastosFiltrados = gastos;
 
-  const totalVentas = facturasFiltradas.reduce(
-    (sum, f) => sum + parseFloat(f.total || 0),
-    0,
-  );
+  // Calcular total de ventas desde el balance (que ya usa pagos)
   const totalGastos = gastosFiltrados.reduce(
     (sum, g) => sum + parseFloat(g.monto || 0),
     0,
   );
+  const totalVentas = balance + totalGastos;
   const facturasCount = facturasFiltradas.length;
   const gastosCount = gastosFiltrados.length;
 
@@ -1178,6 +2147,36 @@ export default function ResultadosView({
           >
             📝 Reporte PDF
           </button>
+          <button
+            className="btn-filter"
+            onClick={async () => {
+              await generarReporteFacturas();
+            }}
+            title="Generar reporte de facturas detalladas"
+            style={{ marginLeft: 8 }}
+          >
+            📋 Reporte Facturas
+          </button>
+          <button
+            className="btn-filter"
+            onClick={async () => {
+              await generarReporteGastos();
+            }}
+            title="Generar reporte de gastos detallados"
+            style={{ marginLeft: 8 }}
+          >
+            💸 Reporte Gastos
+          </button>
+          <button
+            className="btn-filter"
+            onClick={async () => {
+              await generarReportePagos();
+            }}
+            title="Generar reporte de pagos detallados"
+            style={{ marginLeft: 8 }}
+          >
+            💳 Reporte Pagos
+          </button>
         </div>
 
         {/* KPIs */}
@@ -1239,6 +2238,7 @@ export default function ResultadosView({
                     <thead>
                       <tr>
                         <th>Fecha</th>
+                        <th>Hora de venta</th>
                         <th>Cajero</th>
                         <th>Factura</th>
                         <th>Cliente</th>
@@ -1246,22 +2246,46 @@ export default function ResultadosView({
                       </tr>
                     </thead>
                     <tbody>
-                      {facturasFiltradas.slice(0, 10).map((f) => (
-                        <tr key={f.id}>
-                          <td data-label="Fecha">
-                            {f.fecha_hora?.slice(0, 10)}
-                          </td>
-                          <td data-label="Cajero">{f.cajero}</td>
-                          <td data-label="Factura">{f.factura}</td>
-                          <td data-label="Cliente">{f.cliente}</td>
-                          <td
-                            data-label="Total"
-                            style={{ color: "var(--success)" }}
-                          >
-                            L {parseFloat(f.total || 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
+                      {facturasFiltradas.slice(0, 10).map((f) => {
+                        // Extraer hora en formato 12h
+                        let horaVenta = "";
+                        if (f.fecha_hora) {
+                          try {
+                            const fechaCompleta = f.fecha_hora.includes("T")
+                              ? f.fecha_hora
+                              : f.fecha_hora.replace(" ", "T");
+                            const fecha = new Date(fechaCompleta);
+                            let horas = fecha.getHours();
+                            const minutos = fecha
+                              .getMinutes()
+                              .toString()
+                              .padStart(2, "0");
+                            const ampm = horas >= 12 ? "PM" : "AM";
+                            horas = horas % 12 || 12;
+                            horaVenta = `${horas}:${minutos} ${ampm}`;
+                          } catch (e) {
+                            horaVenta = f.fecha_hora.slice(11, 16) || "";
+                          }
+                        }
+
+                        return (
+                          <tr key={f.id}>
+                            <td data-label="Fecha">
+                              {f.fecha_hora?.slice(0, 10)}
+                            </td>
+                            <td data-label="Hora de venta">{horaVenta}</td>
+                            <td data-label="Cajero">{f.cajero}</td>
+                            <td data-label="Factura">{f.factura}</td>
+                            <td data-label="Cliente">{f.cliente}</td>
+                            <td
+                              data-label="Total"
+                              style={{ color: "var(--success)" }}
+                            >
+                              L {parseFloat(f.total || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
