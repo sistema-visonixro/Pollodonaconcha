@@ -636,7 +636,7 @@ export default function PuntoDeVentaView({
         const fechaFin = ultimoDiaMes.toISOString();
 
         // Contar cierres del cajero actual en el mes que NO tengan observación "aclarado"
-        const { data, error, count } = await supabase
+        const { error, count } = await supabase
           .from("cierres")
           .select("*", { count: "exact", head: false })
           .eq("cajero_id", usuarioActual.id)
