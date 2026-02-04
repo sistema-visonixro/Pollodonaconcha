@@ -694,118 +694,327 @@ export default function CaiFacturasView({ onBack }: CaiFacturasViewProps) {
 
         {/* Modal */}
         {showModal && (
-          <div className="modal-overlay">
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3 className="modal-title">
+          <div 
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              backdropFilter: 'blur(4px)',
+            }}
+            onClick={() => setShowModal(false)}
+          >
+            <div 
+              style={{
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                borderRadius: 20,
+                padding: 40,
+                maxWidth: 600,
+                width: '90%',
+                maxHeight: '90vh',
+                overflow: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+                <h2 style={{ 
+                  margin: 0, 
+                  fontSize: '1.8rem', 
+                  fontWeight: 900,
+                  background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}>
                   {editId ? "✏️ Editar CAI" : "➕ Nuevo CAI"}
-                </h3>
+                </h2>
                 <button
-                  className="modal-close"
                   onClick={() => setShowModal(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 28,
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                 >
                   ×
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="form-grid">
-                <input
-                  className="form-input"
-                  type="text"
-                  placeholder="CAI (Código completo)"
-                  value={form.cai || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, cai: e.target.value }))
-                  }
-                  required
-                />
-                <input
-                  className="form-input"
-                  type="number"
-                  placeholder="Rango desde"
-                  value={form.rango_desde || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      rango_desde: Number(e.target.value),
-                    }))
-                  }
-                  required
-                />
-                <input
-                  className="form-input"
-                  type="number"
-                  placeholder="Rango hasta"
-                  value={form.rango_hasta || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      rango_hasta: Number(e.target.value),
-                    }))
-                  }
-                  required
-                />
-                <input
-                  className="form-input"
-                  type="text"
-                  placeholder="Caja asignada (se autocompleta)"
-                  value={(() => {
-                    if (form.cajero_id) {
-                      const cajero = usuarios.find(
-                        (u) => u.id === form.cajero_id
-                      );
-                      return cajero && cajero.caja
-                        ? cajero.caja
-                        : form.caja_asignada || "";
-                    }
-                    return form.caja_asignada || "";
-                  })()}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, caja_asignada: e.target.value }))
-                  }
-                  required
-                  readOnly={!!form.cajero_id}
-                />
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="Factura actual (número de secuencia)"
-                  value={form.factura_actual || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Solo permitir números
-                    if (/^\d*$/.test(value)) {
-                      setForm((f) => ({ ...f, factura_actual: value }));
-                    }
-                  }}
-                />
-                <select
-                  className="form-select"
-                  value={form.cajero_id || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, cajero_id: e.target.value }))
-                  }
-                  required
-                >
-                  <option value="">👤 Selecciona cajero</option>
-                  {usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre}
+
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {/* CAI */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    color: '#90caf9', 
+                    fontSize: 14, 
+                    fontWeight: 700, 
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    📋 Código CAI *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ingresa el código CAI completo"
+                    value={form.cai || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, cai: e.target.value }))}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '2px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: '#fff',
+                      fontSize: 15,
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                    }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                  />
+                </div>
+
+                {/* Rango de facturas */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      color: '#90caf9', 
+                      fontSize: 14, 
+                      fontWeight: 700, 
+                      marginBottom: 8,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}>
+                      🔢 Rango Desde *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej: 1"
+                      value={form.rango_desde || ""}
+                      onChange={(e) => setForm((f) => ({ ...f, rango_desde: Number(e.target.value) }))}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '2px solid rgba(255,255,255,0.1)',
+                        borderRadius: 10,
+                        color: '#fff',
+                        fontSize: 15,
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                      }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      color: '#90caf9', 
+                      fontSize: 14, 
+                      fontWeight: 700, 
+                      marginBottom: 8,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}>
+                      🔢 Rango Hasta *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ej: 1000"
+                      value={form.rango_hasta || ""}
+                      onChange={(e) => setForm((f) => ({ ...f, rango_hasta: Number(e.target.value) }))}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '2px solid rgba(255,255,255,0.1)',
+                        borderRadius: 10,
+                        color: '#fff',
+                        fontSize: 15,
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                      }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                    />
+                  </div>
+                </div>
+
+                {/* Cajero */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    color: '#90caf9', 
+                    fontSize: 14, 
+                    fontWeight: 700, 
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    👤 Cajero Asignado *
+                  </label>
+                  <select
+                    value={form.cajero_id || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, cajero_id: e.target.value }))}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '2px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: '#fff',
+                      fontSize: 15,
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                  >
+                    <option value="" style={{ background: '#1a1a2e', color: '#fff' }}>
+                      Selecciona un cajero
                     </option>
-                  ))}
-                </select>
+                    {usuarios.map((u) => (
+                      <option key={u.id} value={u.id} style={{ background: '#1a1a2e', color: '#fff' }}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Caja Asignada */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    color: '#90caf9', 
+                    fontSize: 14, 
+                    fontWeight: 700, 
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    🏪 Caja Asignada *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={form.cajero_id ? "Se autocompleta desde cajero" : "Ingresa nombre de caja"}
+                    value={(() => {
+                      if (form.cajero_id) {
+                        const cajero = usuarios.find((u) => u.id === form.cajero_id);
+                        return cajero && cajero.caja ? cajero.caja : form.caja_asignada || "";
+                      }
+                      return form.caja_asignada || "";
+                    })()}
+                    onChange={(e) => setForm((f) => ({ ...f, caja_asignada: e.target.value }))}
+                    required
+                    readOnly={!!form.cajero_id}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: form.cajero_id ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+                      border: '2px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: form.cajero_id ? 'rgba(255,255,255,0.6)' : '#fff',
+                      fontSize: 15,
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      cursor: form.cajero_id ? 'not-allowed' : 'text',
+                    }}
+                  />
+                </div>
+
+                {/* Factura Actual */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    color: '#90caf9', 
+                    fontSize: 14, 
+                    fontWeight: 700, 
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}>
+                    📄 Factura Actual (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Número de factura actual"
+                    value={form.factura_actual || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*$/.test(value)) {
+                        setForm((f) => ({ ...f, factura_actual: value }));
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '2px solid rgba(255,255,255,0.1)',
+                      borderRadius: 10,
+                      color: '#fff',
+                      fontSize: 15,
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                    }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = '#667eea'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+                  />
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
+                    Deja en blanco para calcular automáticamente
+                  </div>
+                </div>
+
+                {/* Botón Guardar */}
                 <button
                   type="submit"
-                  className="btn-primary"
                   disabled={loading}
-                  style={{ gridColumn: "1/-1", justifySelf: "start" }}
+                  style={{
+                    padding: '14px 32px',
+                    background: loading ? 'rgba(102, 126, 234, 0.5)' : 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    borderRadius: 12,
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                    marginTop: 8,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) e.currentTarget.style.transform = 'translateY(0)';
+                  }}
                 >
-                  {loading
-                    ? "⏳ Guardando..."
-                    : editId
-                    ? "💾 Guardar Cambios"
-                    : "✅ Crear CAI"}
+                  {loading ? "⏳ Guardando..." : editId ? "💾 Guardar Cambios" : "✅ Crear CAI"}
                 </button>
               </form>
             </div>
