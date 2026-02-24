@@ -13,7 +13,7 @@ import {
   Line,
   CartesianGrid,
 } from "recharts";
-import { NOMBRE_NEGOCIO_UPPER } from "./empresa";
+import { useDatosNegocio } from "./useDatosNegocio";
 
 // use centralized supabase client from src/supabaseClient.ts
 
@@ -26,6 +26,9 @@ export default function ResultadosView({
   onBack,
   onVerFacturasEmitidas,
 }: ResultadosViewProps) {
+  // Obtener datos del negocio desde la base de datos
+  const { datos: datosNegocio } = useDatosNegocio();
+  
   // Inicializar los filtros de fecha al día actual (formato YYYY-MM-DD)
   const today = getLocalDayRange().day;
   const [desde, setDesde] = useState(() => today);
@@ -780,9 +783,10 @@ export default function ResultadosView({
       html += `</head><body><div class="container">`;
 
       // Header moderno
+      const nombreNegocioReporte = datosNegocio.nombre_negocio?.toUpperCase() || "PUNTO DE VENTA";
       html += `<div class="header">
         <div class="header-content">
-          <div class="report-title">📊 ${NOMBRE_NEGOCIO_UPPER}</div>
+          <div class="report-title">📊 ${nombreNegocioReporte}</div>
           <div class="report-subtitle">${titulo}</div>
           <div style="margin-top:10px;font-size:14px;opacity:0.8;">Generado: ${new Date().toLocaleDateString(
             "es-HN",
