@@ -6,6 +6,8 @@ import Landing from "./Landing";
 import AdminPanel from "./AdminPanel";
 import UsuariosView from "./UsuariosView";
 import InventarioView from "./InventarioView";
+import MovimientosInventarioView from "./MovimientosInventarioView";
+import InventarioMovilView from "./InventarioMovilView";
 import PuntoDeVentaView from "./PuntoDeVentaView";
 import AperturaView from "./AperturaView";
 import { getLocalDayRange } from "./utils/fechas";
@@ -44,6 +46,8 @@ function App() {
         | "admin"
         | "usuarios"
         | "inventario"
+        | "movimientosInventario"
+        | "movimientosMovil"
         | "cai"
         | "resultados"
         | "gastos"
@@ -66,6 +70,8 @@ function App() {
     | "admin"
     | "usuarios"
     | "inventario"
+    | "movimientosInventario"
+    | "movimientosMovil"
     | "cai"
     | "resultados"
     | "gastos"
@@ -116,12 +122,12 @@ function App() {
     };
     window.addEventListener(
       "app:check-update-result",
-      handler as EventListener
+      handler as EventListener,
     );
     return () =>
       window.removeEventListener(
         "app:check-update-result",
-        handler as EventListener
+        handler as EventListener,
       );
   }, []);
 
@@ -174,7 +180,7 @@ function App() {
             setShowLanding(true);
             console.error(
               "Error al ejecutar flujo de landing automáticamente:",
-              e
+              e,
             );
           }
         })();
@@ -226,6 +232,14 @@ function App() {
       }
     } else if (user.rol === "Admin") {
       setView("admin");
+    } else if (user.rol === "inventario") {
+      // Detectar si es dispositivo móvil
+      const isMobile = window.innerWidth < 768 || "ontouchstart" in window;
+      if (isMobile) {
+        setView("movimientosMovil");
+      } else {
+        setView("movimientosInventario");
+      }
     } else {
       setView("home");
     }
@@ -400,6 +414,26 @@ function App() {
     );
   }
 
+  if (
+    view === "movimientosInventario" &&
+    (user?.rol === "Admin" || user?.rol === "inventario")
+  ) {
+    return (
+      <>
+        <MovimientosInventarioView
+          onBack={() => setView(user?.rol === "Admin" ? "admin" : "home")}
+          onLogout={user?.rol === "inventario" ? handleLogout : undefined}
+        />
+        <VersionComponent />
+        <div style={{ textAlign: "center", marginTop: 20 }}></div>
+      </>
+    );
+  }
+
+  if (view === "movimientosMovil" && user?.rol === "inventario") {
+    return <InventarioMovilView onLogout={handleLogout} />;
+  }
+
   if (view === "cai" && user?.rol === "Admin") {
     return (
       <>
@@ -542,7 +576,9 @@ function App() {
             <span
               style={{
                 fontSize: 11,
-                color: updateMessage.includes("disponible") ? "#d32f2f" : "#2e7d32",
+                color: updateMessage.includes("disponible")
+                  ? "#d32f2f"
+                  : "#2e7d32",
                 fontStyle: "italic",
               }}
             >

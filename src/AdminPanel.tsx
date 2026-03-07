@@ -6,6 +6,7 @@ type ViewType =
   | "admin"
   | "usuarios"
   | "inventario"
+  | "movimientosInventario"
   | "cai"
   | "resultados"
   | "gastos"
@@ -38,6 +39,13 @@ const cards: {
     view: "inventario",
     color: "#2e7d32",
     subtitle: "Stock y productos",
+  },
+  {
+    label: "Movimientos y Producción",
+    icon: "🏭",
+    view: "movimientosInventario",
+    color: "#1565c0",
+    subtitle: "Kardex, recetas y lotes",
   },
   {
     label: "CAI y Facturación",
@@ -85,6 +93,7 @@ import { useState, useEffect } from "react";
 import { useDatosNegocio } from "./useDatosNegocio";
 import UsuariosView from "./UsuariosView";
 import InventarioView from "./InventarioView";
+import MovimientosInventarioView from "./MovimientosInventarioView";
 import CaiFacturasView from "./CaiFacturasView";
 import ResultadosView from "./ResultadosView";
 import GastosView from "./GastosView";
@@ -96,10 +105,10 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
   const { datos: datosNegocio } = useDatosNegocio();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState<boolean>(
-    typeof window !== "undefined" ? window.innerWidth >= 1024 : false
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : false,
   );
   const [currentView, setCurrentView] = useState<string>(
-    isDesktop ? "resultados" : "menu"
+    isDesktop ? "resultados" : "menu",
   );
 
   useEffect(() => {
@@ -711,6 +720,11 @@ const AdminPanel: FC<AdminPanelProps> = ({ onSelect, user }) => {
               )}
               {currentView === "inventario" && (
                 <InventarioView onBack={() => setCurrentView("resultados")} />
+              )}
+              {currentView === "movimientosInventario" && (
+                <MovimientosInventarioView
+                  onBack={() => setCurrentView("resultados")}
+                />
               )}
               {currentView === "cai" && (
                 <CaiFacturasView onBack={() => setCurrentView("resultados")} />

@@ -28,7 +28,7 @@ export default function ResultadosView({
 }: ResultadosViewProps) {
   // Obtener datos del negocio desde la base de datos
   const { datos: datosNegocio } = useDatosNegocio();
-  
+
   // Inicializar los filtros de fecha al día actual (formato YYYY-MM-DD)
   const today = getLocalDayRange().day;
   const [desde, setDesde] = useState(() => today);
@@ -410,6 +410,30 @@ export default function ResultadosView({
         ? Number(precioDolarRes.data.valor)
         : 0;
 
+      // Consultar movimientos de inventario (bebidas e insumos vendidos) en paralelo
+      const [bebidasMovRes, insumosMovRes] = await Promise.all([
+        supabase
+          .from("movimientos_inventario")
+          .select(
+            "producto_id, cantidad, costo_unitario, productos(nombre, precio, tipo)",
+          )
+          .eq("tipo", "venta")
+          .eq("item_tipo", "producto")
+          .gte("created_at", desdeInicio)
+          .lte("created_at", hastaFin),
+        supabase
+          .from("movimientos_inventario")
+          .select(
+            "insumo_id, cantidad, costo_unitario, insumos(nombre, unidad)",
+          )
+          .eq("tipo", "venta")
+          .eq("item_tipo", "insumo")
+          .gte("created_at", desdeInicio)
+          .lte("created_at", hastaFin),
+      ]);
+      const bebidasMovData = bebidasMovRes.data || [];
+      const insumosMovData = insumosMovRes.data || [];
+
       // Los datos ya vienen directamente de las funciones de paginación
 
       const totalFacturas = factData.length;
@@ -497,6 +521,13 @@ export default function ResultadosView({
       const balanceReporte = totalVentas - totalGastos;
       const rentabilidadPercent =
         totalGastos > 0 ? (balanceReporte / totalGastos) * 100 : null;
+
+      // Ganancia + Diferencia acumulada de cierres
+      const totalDiferenciaCierres = cierresData.reduce(
+        (acc: number, c: any) => acc + parseFloat(c.diferencia || 0),
+        0,
+      );
+      const gananciaMasDiferencia = balanceReporte + totalDiferenciaCierres;
 
       // Desglose de pagos (separar dolares USD de Lps)
       const pagosPorTipo: { [k: string]: number } = {};
@@ -783,7 +814,8 @@ export default function ResultadosView({
       html += `</head><body><div class="container">`;
 
       // Header moderno
-      const nombreNegocioReporte = datosNegocio.nombre_negocio?.toUpperCase() || "PUNTO DE VENTA";
+      const nombreNegocioReporte =
+        datosNegocio.nombre_negocio?.toUpperCase() || "PUNTO DE VENTA";
       html += `<div class="header">
         <div class="header-content">
           <div class="report-title">📊 ${nombreNegocioReporte}</div>
@@ -830,6 +862,13 @@ export default function ResultadosView({
         <div class="kpi-icon">📈</div>
         <div class="kpi-label">Rentabilidad</div>
         <div class="kpi-value">${rentabilidadPercent !== null ? rentabilidadPercent.toFixed(1) + "%" : "N/A"}</div>
+      </div>`;
+      html += `<div class="kpi-card" style="border-left-color:#ec4899;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+        <div class="kpi-icon">🏦</div>
+        <div class="kpi-label">Ganancia + Diferencia</div>
+        <div class="kpi-value" style="color:${gananciaMasDiferencia >= 0 ? "#10b981" : "#ef4444"};">
+          L ${gananciaMasDiferencia.toLocaleString("es-HN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
       </div>`;
       html += `</div>`;
 
@@ -1382,6 +1421,90 @@ export default function ResultadosView({
         html += `</tr>`;
 
         html += `</tbody></table></div>`;
+      }
+      html += `</div>`;
+
+      // ── Sección Bebidas Vendidas (movimientos_inventario tipo=venta, item_tipo=producto) ──
+      const bebidasMap = new Map<
+        string,
+        { nombre: string; cantidad: number; precio: number }
+      >();
+      (bebidasMovData as any[]).forEach((m: any) => {
+        const prod = Array.isArray(m.productos) ? m.productos[0] : m.productos;
+        // Solo incluir productos cuyo tipo sea 'bebida'
+        if (!prod || prod.tipo !== "bebida") return;
+        const nombre = prod.nombre || m.producto_id || "Desconocido";
+        const precio = parseFloat(prod?.precio ?? m.costo_unitario ?? 0);
+        const cantidad = parseFloat(m.cantidad || 0);
+        if (bebidasMap.has(nombre)) {
+          bebidasMap.get(nombre)!.cantidad += cantidad;
+        } else {
+          bebidasMap.set(nombre, { nombre, cantidad, precio });
+        }
+      });
+
+      html += `<div class="section"><div class="section-title">🥤 Bebidas Vendidas</div>`;
+      if (bebidasMap.size === 0) {
+        html += `<p style="padding:20px;text-align:center;color:#64748b;">No hay movimientos de bebidas en el rango seleccionado.</p>`;
+      } else {
+        html += `<table><thead><tr><th>Bebida</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Precio Venta</th><th style="text-align:right;">Total</th></tr></thead><tbody>`;
+        let totalBebidasVentas = 0;
+        bebidasMap.forEach(({ nombre, cantidad, precio }) => {
+          const total = cantidad * precio;
+          totalBebidasVentas += total;
+          html += `<tr><td>${nombre}</td><td style="text-align:right;">${cantidad.toFixed(2)}</td><td style="text-align:right;">L ${precio.toLocaleString("es-HN", { minimumFractionDigits: 2 })}</td><td style="text-align:right;">L ${total.toLocaleString("es-HN", { minimumFractionDigits: 2 })}</td></tr>`;
+        });
+        html += `<tr class="total-row"><td colspan="3"><strong>TOTAL BEBIDAS</strong></td><td style="text-align:right;"><strong>L ${totalBebidasVentas.toLocaleString("es-HN", { minimumFractionDigits: 2 })}</strong></td></tr>`;
+        html += `</tbody></table>`;
+      }
+      html += `</div>`;
+
+      // ── Sección Insumos Consumidos (movimientos_inventario tipo=venta, item_tipo=insumo) ──
+      const insumosConsumoMap = new Map<
+        string,
+        {
+          nombre: string;
+          unidad: string;
+          cantidad: number;
+          costoUnitario: number;
+          costoTotal: number;
+        }
+      >();
+      (insumosMovData as any[]).forEach((m: any) => {
+        const ins = Array.isArray(m.insumos) ? m.insumos[0] : m.insumos;
+        const nombre = ins?.nombre || m.insumo_id || "Desconocido";
+        const unidad = ins?.unidad || "";
+        const cantidad = parseFloat(m.cantidad || 0);
+        const costoUnitario = parseFloat(m.costo_unitario || 0);
+        if (insumosConsumoMap.has(nombre)) {
+          const entry = insumosConsumoMap.get(nombre)!;
+          entry.cantidad += cantidad;
+          entry.costoTotal += cantidad * costoUnitario;
+        } else {
+          insumosConsumoMap.set(nombre, {
+            nombre,
+            unidad,
+            cantidad,
+            costoUnitario,
+            costoTotal: cantidad * costoUnitario,
+          });
+        }
+      });
+
+      html += `<div class="section"><div class="section-title">🧂 Insumos Consumidos</div>`;
+      if (insumosConsumoMap.size === 0) {
+        html += `<p style="padding:20px;text-align:center;color:#64748b;">No hay consumo de insumos en el rango seleccionado.</p>`;
+      } else {
+        html += `<table><thead><tr><th>Insumo</th><th>Unidad</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Costo Unitario</th><th style="text-align:right;">Total Costo</th></tr></thead><tbody>`;
+        let totalInsumosCosto = 0;
+        insumosConsumoMap.forEach(
+          ({ nombre, unidad, cantidad, costoUnitario, costoTotal }) => {
+            totalInsumosCosto += costoTotal;
+            html += `<tr><td>${nombre}</td><td>${unidad}</td><td style="text-align:right;">${cantidad.toFixed(3)}</td><td style="text-align:right;">L ${costoUnitario.toLocaleString("es-HN", { minimumFractionDigits: 2 })}</td><td style="text-align:right;">L ${costoTotal.toLocaleString("es-HN", { minimumFractionDigits: 2 })}</td></tr>`;
+          },
+        );
+        html += `<tr class="total-row"><td colspan="4"><strong>TOTAL INSUMOS</strong></td><td style="text-align:right;"><strong>L ${totalInsumosCosto.toLocaleString("es-HN", { minimumFractionDigits: 2 })}</strong></td></tr>`;
+        html += `</tbody></table>`;
       }
       html += `</div>`;
 

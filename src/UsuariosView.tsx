@@ -48,11 +48,11 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
     // Debe tener mínimo 6 caracteres, al menos una letra y un signo
     if (
       !/^.*(?=.{6,})(?=.*[A-Za-z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).*$/.test(
-        adminClave
+        adminClave,
       )
     ) {
       setAdminError(
-        "La contraseña debe tener mínimo 6 caracteres, incluir una letra y un signo."
+        "La contraseña debe tener mínimo 6 caracteres, incluir una letra y un signo.",
       );
       return;
     }
@@ -129,10 +129,10 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
   const errorLimite = limiteTotal
     ? "No se pueden agregar más de 6 usuarios."
     : limiteAdmin
-    ? "Solo puede haber 1 usuario admin."
-    : limiteCajero
-    ? "Solo puede haber 5 cajeros."
-    : "";
+      ? "Solo puede haber 1 usuario admin."
+      : limiteCajero
+        ? "Solo puede haber 5 cajeros."
+        : "";
 
   // Crear o editar usuario
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,11 +145,11 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
     const clave = form.clave || "";
     if (
       !/^.*(?=.{6,})(?=.*[A-Za-z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).*$/.test(
-        clave
+        clave,
       )
     ) {
       setError(
-        "La contraseña debe tener mínimo 6 caracteres, incluir una letra y un signo."
+        "La contraseña debe tener mínimo 6 caracteres, incluir una letra y un signo.",
       );
       return;
     }
@@ -565,35 +565,96 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((u) => (
-                  <tr key={u.id}>
-                    <td style={{ color: "#43a047", fontWeight: 700 }}>
-                      {u.id}
-                    </td>
-                    <td>
-                      <strong>{u.nombre}</strong>
-                    </td>
-                    <td>{u.codigo}</td>
-                    <td style={{ color: "var(--text-secondary)" }}>
-                      {u.email || "-"}
-                    </td>
-                    <td
+                {usuarios
+                  .filter((u) => u.rol === "cajero")
+                  .map((u) => (
+                    <tr key={u.id}>
+                      <td style={{ color: "#43a047", fontWeight: 700 }}>
+                        {u.id}
+                      </td>
+                      <td>
+                        <strong>{u.nombre}</strong>
+                      </td>
+                      <td>{u.codigo}</td>
+                      <td style={{ color: "var(--text-secondary)" }}>
+                        {u.email || "-"}
+                      </td>
+                      <td
+                        style={{
+                          color:
+                            u.rol === "admin"
+                              ? "#1e88e5"
+                              : u.rol === "sub-Admin"
+                                ? "#f57c00"
+                                : "#4caf50",
+                        }}
+                      >
+                        {u.rol}
+                      </td>
+                      <td style={{ color: "#43a047", fontWeight: 700 }}>
+                        {u.caja || "-"}
+                      </td>
+                      <td>{u.ip || "-"}</td>
+                      <td>
+                        {u.rol !== "Admin" && (
+                          <button
+                            className="btn-table btn-edit"
+                            onClick={() => handleEdit(u)}
+                          >
+                            Editar
+                          </button>
+                        )}
+                        {u.rol === "Admin" && (
+                          <button
+                            className="btn-table btn-update"
+                            onClick={() => handleAdminUpdate(u)}
+                            style={{
+                              background: "#1976d2",
+                              color: "#fff",
+                              marginLeft: 8,
+                            }}
+                          >
+                            Actualizar
+                          </button>
+                        )}
+                        {/* Eliminado botón de eliminar: sólo se permite editar/actualizar */}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+            {/* Cards view para móviles (oculto en escritorio) */}
+            <div className="cards-grid" style={{ marginTop: 8 }}>
+              {usuarios
+                .filter((u) => u.rol === "cajero")
+                .map((u) => (
+                  <div className="user-card" key={u.id}>
+                    <div className="user-avatar-sm">
+                      {u.nombre?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <div className="user-body">
+                      <div className="user-name">
+                        {u.nombre}{" "}
+                        <span
+                          style={{
+                            color: "var(--text-secondary)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          #{u.codigo}
+                        </span>
+                      </div>
+                      <div className="user-meta">
+                        {u.rol} · Caja: {u.caja || "-"} · IP: {u.ip || "-"}
+                      </div>
+                    </div>
+                    <div
                       style={{
-                        color:
-                          u.rol === "admin"
-                            ? "#1e88e5"
-                            : u.rol === "sub-Admin"
-                            ? "#f57c00"
-                            : "#4caf50",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
                       }}
                     >
-                      {u.rol}
-                    </td>
-                    <td style={{ color: "#43a047", fontWeight: 700 }}>
-                      {u.caja || "-"}
-                    </td>
-                    <td>{u.ip || "-"}</td>
-                    <td>
                       {u.rol !== "Admin" && (
                         <button
                           className="btn-table btn-edit"
@@ -606,68 +667,15 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                         <button
                           className="btn-table btn-update"
                           onClick={() => handleAdminUpdate(u)}
-                          style={{
-                            background: "#1976d2",
-                            color: "#fff",
-                            marginLeft: 8,
-                          }}
+                          style={{ background: "#1976d2", color: "#fff" }}
                         >
                           Actualizar
                         </button>
                       )}
-                      {/* Eliminado botón de eliminar: sólo se permite editar/actualizar */}
-                    </td>
-                  </tr>
+                      {/* Eliminado botón de eliminar en vista móvil */}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-            {/* Cards view para móviles (oculto en escritorio) */}
-            <div className="cards-grid" style={{ marginTop: 8 }}>
-              {usuarios.map((u) => (
-                <div className="user-card" key={u.id}>
-                  <div className="user-avatar-sm">
-                    {u.nombre?.charAt(0)?.toUpperCase()}
-                  </div>
-                  <div className="user-body">
-                    <div className="user-name">
-                      {u.nombre}{" "}
-                      <span
-                        style={{
-                          color: "var(--text-secondary)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        #{u.codigo}
-                      </span>
-                    </div>
-                    <div className="user-meta">
-                      {u.rol} · Caja: {u.caja || "-"} · IP: {u.ip || "-"}
-                    </div>
-                  </div>
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                  >
-                    {u.rol !== "Admin" && (
-                      <button
-                        className="btn-table btn-edit"
-                        onClick={() => handleEdit(u)}
-                      >
-                        Editar
-                      </button>
-                    )}
-                    {u.rol === "Admin" && (
-                      <button
-                        className="btn-table btn-update"
-                        onClick={() => handleAdminUpdate(u)}
-                        style={{ background: "#1976d2", color: "#fff" }}
-                      >
-                        Actualizar
-                      </button>
-                    )}
-                    {/* Eliminado botón de eliminar en vista móvil */}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -873,7 +881,7 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                     .filter((caja) => {
                       // Permitir la caja si no está ocupada o si es la que tiene el usuario editado
                       const ocupada = usuarios.some(
-                        (u) => u.caja === caja && (!editId || u.id !== editId)
+                        (u) => u.caja === caja && (!editId || u.id !== editId),
                       );
                       return !ocupada || (editId && form.caja === caja);
                     })
@@ -901,8 +909,8 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                   {loading
                     ? "⏳ Guardando..."
                     : editId
-                    ? "💾 Guardar Cambios"
-                    : "✅ Crear Usuario"}
+                      ? "💾 Guardar Cambios"
+                      : "✅ Crear Usuario"}
                 </button>
               </form>
             </div>
