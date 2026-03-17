@@ -79,8 +79,8 @@ begin
       raise exception 'El insumo % no existe', p_item_id;
     end if;
 
-    -- Solo bloquear si es modo estricto (uso manual/producción)
-    if p_modo_estricto and v_saldo < 0 then
+    -- Solo bloquear si es modo estricto (uso manual/producción) Y es una SALIDA
+    if p_modo_estricto and v_delta < 0 and v_saldo < 0 then
       raise exception 'Stock insuficiente del insumo %. Saldo resultante: %',
             p_item_id, v_saldo;
     end if;
@@ -125,7 +125,8 @@ begin
       returning stock_actual into v_saldo;
     end if;
 
-    if p_modo_estricto and not v_perm_stock_neg and v_saldo < 0 then
+    -- FIX: solo bloquear si es SALIDA (v_delta < 0), nunca para entradas
+    if p_modo_estricto and not v_perm_stock_neg and v_delta < 0 and v_saldo < 0 then
       raise exception 'Stock insuficiente del producto %. Saldo: %', p_item_id, v_saldo;
     end if;
 
