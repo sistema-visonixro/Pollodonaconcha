@@ -14,7 +14,7 @@ let ultimaVerificacionReal = {
 const CACHE_DURATION = 3000; // 3 segundos de cache
 
 /**
- * Verifica conexión real haciendo ping a un servicio confiable
+ * Verifica conexión real haciendo ping al endpoint de Supabase de la app
  */
 async function verificarConexionRealConTimeout(): Promise<boolean> {
   // Si no hay navigator.onLine, definitivamente sin internet
@@ -26,36 +26,40 @@ async function verificarConexionRealConTimeout(): Promise<boolean> {
   // Usar cache reciente para evitar checks excesivos
   const ahora = Date.now();
   if (ahora - ultimaVerificacionReal.timestamp < CACHE_DURATION) {
-    console.log(`📦 Usando cache: ${ultimaVerificacionReal.conectado ? "CONECTADO" : "DESCONECTADO"}`);
     return ultimaVerificacionReal.conectado;
   }
 
   try {
-    // Timeout de 4 segundos para la verificación
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const supabaseUrl =
+      (import.meta as any).env?.VITE_SUPABASE_URL ||
+      "https://qxrdbsgktnyhigduhzcw.supabase.co";
 
-    // Intentar conectar a un endpoint confiable (Google)
-    // Usamos mode: 'no-cors' para evitar problemas de CORS
-    await fetch("https://www.google.com/favicon.ico", {
-      method: "GET",
+    // Timeout de 5 segundos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    // Ping al endpoint de Supabase (no-cors para evitar problemas de CORS)
+    await fetch(`${supabaseUrl}/rest/v1/`, {
+      method: "HEAD",
       mode: "no-cors",
       signal: controller.signal,
       cache: "no-store",
     });
 
     clearTimeout(timeoutId);
-
-    // Si llegamos aquí sin error, hay conexión
     ultimaVerificacionReal = { timestamp: ahora, conectado: true };
-    console.log("✅ Verificación exitosa → CONECTADO");
     return true;
   } catch (error) {
-    // Si falla (timeout, network error, etc), asumir sin conexión
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.warn("⚠️ Error verificando conexión:", errorMsg);
-    ultimaVerificacionReal = { timestamp: ahora, conectado: false };
-    return false;
+    // AbortError = timeout real; otros errores pueden ser CORS (conexión existe)
+    if (errorMsg.includes("abort") || errorMsg.includes("Abort")) {
+      ultimaVerificacionReal = { timestamp: ahora, conectado: false };
+      return false;
+    }
+    // Para errores de red distintos al abort, confiar en navigator.onLine
+    const resultado = navigator.onLine;
+    ultimaVerificacionReal = { timestamp: ahora, conectado: resultado };
+    return resultado;
   }
 }
 

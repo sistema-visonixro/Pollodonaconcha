@@ -18,6 +18,7 @@ import {
   eliminarPagoLocal,
   eliminarGastoLocal,
   eliminarEnvioLocal,
+  obtenerEnviosPendientes,
   actualizarCacheProductos,
   obtenerProductosCache,
   guardarProductosCache,
@@ -120,7 +121,7 @@ export default function PuntoDeVentaView({
     setTimeout(() => {
       setMenuClosing(false);
       setShowOptionsMenu(false);
-    }, 240);
+    }, 340);
   };
 
   // Función para obtener resumen de caja del día (EFECTIVO/TARJETA/TRANSFERENCIA)
@@ -1846,9 +1847,55 @@ export default function PuntoDeVentaView({
           50% { opacity: 0.3; }
         }
         @keyframes menuIn {
-          from { transform: scale(0.96); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
+          from { transform: scale(0.82) translateY(32px); opacity: 0; filter: blur(4px); }
+          to   { transform: scale(1)    translateY(0);    opacity: 1; filter: blur(0); }
         }
+        @keyframes menuOut {
+          from { transform: scale(1)    translateY(0);    opacity: 1; filter: blur(0); }
+          to   { transform: scale(0.88) translateY(20px); opacity: 0; filter: blur(2px); }
+        }
+        @keyframes backdropIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes backdropOut {
+          from { opacity: 1; }
+          to   { opacity: 0; }
+        }
+        @keyframes btnSlideIn {
+          from { transform: translateX(-14px); opacity: 0; }
+          to   { transform: translateX(0);     opacity: 1; }
+        }
+        .menu-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 14px 18px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.07);
+          font-weight: 700;
+          font-size: 15px;
+          cursor: pointer;
+          text-align: left;
+          transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+          overflow: hidden;
+          animation: btnSlideIn 320ms cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .menu-btn::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(255,255,255,0);
+          transition: background 160ms ease;
+          border-radius: inherit;
+        }
+        .menu-btn:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 10px 28px rgba(0,0,0,0.12); }
+        .menu-btn:hover::after { background: rgba(0,0,0,0.04); }
+        .menu-btn:active { transform: scale(0.97); }
+        .menu-btn .btn-icon { font-size: 22px; min-width: 28px; text-align: center; }
+        .menu-btn .btn-label { font-size: 14px; font-weight: 800; letter-spacing: 0.3px; }
+        .menu-btn .btn-desc { font-size: 11px; font-weight: 500; opacity: 0.55; margin-top: 1px; }
       `}</style>
       {/* Indicador de conexión e información del cajero */}
       <div
@@ -5511,13 +5558,13 @@ export default function PuntoDeVentaView({
                           }
                         >
                           <td style={{ padding: "12px 16px", color: "#444" }}>
-                            {p.fecha}
+                            {p.fecha_hora || p.fecha || ""}
                           </td>
                           <td style={{ padding: "12px 16px", fontWeight: 500 }}>
                             {p.cliente}
                           </td>
                           <td style={{ padding: "12px 16px", color: "#666" }}>
-                            {p.celular}
+                            {p.telefono || p.celular || ""}
                           </td>
                           <td
                             style={{
@@ -6664,207 +6711,181 @@ export default function PuntoDeVentaView({
             left: 0,
             width: "100vw",
             height: "100vh",
-            background: "rgba(0,0,0,0.28)",
+            background: menuClosing ? "rgba(0,0,0,0)" : "rgba(30,40,60,0.45)",
+            backdropFilter: menuClosing ? "blur(0px)" : "blur(12px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             zIndex: 130000,
+            animation: menuClosing ? "backdropOut 340ms ease forwards" : "backdropIn 280ms ease forwards",
           }}
           onClick={() => closeMenuAnimated()}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: "#fff",
-              color: "#0b1220",
-              borderRadius: 14,
-              padding: 24,
-              minWidth: 360,
-              maxWidth: 720,
-              width: "90%",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 12,
-              textAlign: "center",
-              boxShadow: "0 12px 40px rgba(16,24,40,0.12)",
-              transform: menuClosing ? "scale(0.96)" : "scale(1)",
-              opacity: menuClosing ? 0 : 1,
-              transition: "transform 220ms ease, opacity 220ms ease",
-              animation: !menuClosing ? "menuIn 220ms ease" : "none",
+              background: "linear-gradient(160deg, #ffffff 0%, #f4f7ff 60%, #eef2ff 100%)",
+              color: "#111827",
+              borderRadius: 24,
+              padding: "28px 24px 24px",
+              minWidth: 340,
+              maxWidth: 700,
+              width: "92%",
+              boxShadow: "0 32px 80px rgba(30,40,100,0.18), 0 0 0 1px rgba(100,120,200,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
+              animation: menuClosing ? "menuOut 340ms cubic-bezier(0.4,0,1,1) forwards" : "menuIn 360ms cubic-bezier(0.34,1.56,0.64,1) forwards",
             }}
           >
-            {aperturaRegistrada === false ? (
-              <>
-                <button
-                  onClick={() => {
-                    setTheme(theme === "lite" ? "dark" : "lite");
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#f3f4f6",
-                    color: "#0b1220",
-                    fontWeight: 700,
-                  }}
-                >
-                  {theme === "lite" ? "🌙 Oscuro" : "☀️ Claro"}
-                </button>
-                <button
-                  onClick={() => {
-                    if (setView) setView("resultadosCaja");
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#fff7ed",
-                    color: "#a45100",
-                    fontWeight: 700,
-                  }}
-                >
-                  📝 Aclaraciones
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => {
-                    setTheme(theme === "lite" ? "dark" : "lite");
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "none",
-                    background: "#263241",
-                    color: "#fff",
-                    fontWeight: 700,
-                  }}
-                >
-                  {theme === "lite" ? "🌙 Oscuro" : "☀️ Claro"}
-                </button>
-                <button
-                  onClick={() => {
-                    fetchResumenCaja();
-                    setShowResumen(true);
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#e8f0fe",
-                    color: "#0b3d91",
-                    fontWeight: 700,
-                  }}
-                >
-                  📊 Resumen
-                </button>
-                <button
-                  onClick={() => {
-                    if (!isOnline) {
-                      setShowNoConnectionModal(true);
-                    } else {
-                      setShowCierre(true);
-                    }
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: isOnline ? "#fff7cc" : "#f5f5f5",
-                    color: isOnline ? "#3b2f00" : "#666",
-                    fontWeight: 700,
-                  }}
-                >
-                  🚪 Cierre de Caja
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRegistrarGasto(true);
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#ecf9f0",
-                    color: "#0b5131",
-                    fontWeight: 700,
-                  }}
-                >
-                  💰 Gasto
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDevolucionModal(true);
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#f6eefc",
-                    color: "#4b1763",
-                    fontWeight: 700,
-                  }}
-                >
-                  🔄 Devolución
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEnvioModal(true);
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#eef9ef",
-                    color: "#14521e",
-                    fontWeight: 700,
-                  }}
-                >
-                  🏠 Domicilios
-                </button>
-                <button
-                  onClick={() => {
-                    if (setView) setView("resultadosCaja");
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#fff7ed",
-                    color: "#a45100",
-                    fontWeight: 700,
-                  }}
-                >
-                  📝 Aclaraciones
-                </button>
-                <button
-                  onClick={() => {
-                    fetchHistorialVentas();
-                    closeMenuAnimated();
-                  }}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    border: "1px solid rgba(16,24,40,0.06)",
-                    background: "#f5eef9",
-                    color: "#3b0e63",
-                    fontWeight: 700,
-                  }}
-                >
-                  🧾 Historial de venta
-                </button>
-              </>
-            )}
+            {/* Header del menú */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#6b7fd4", textTransform: "uppercase", marginBottom: 4 }}>
+                  Panel de Control
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5, color: "#111827" }}>
+                  Opciones
+                </div>
+              </div>
+              <button
+                onClick={() => closeMenuAnimated()}
+                style={{
+                  background: "rgba(100,120,200,0.08)",
+                  border: "1px solid rgba(100,120,200,0.18)",
+                  color: "#6b7280",
+                  borderRadius: 10,
+                  width: 36,
+                  height: 36,
+                  cursor: "pointer",
+                  fontSize: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 160ms",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(100,120,200,0.16)"; e.currentTarget.style.color = "#374151"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(100,120,200,0.08)"; e.currentTarget.style.color = "#6b7280"; }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Separador */}
+            <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(100,120,200,0.2), transparent)", marginBottom: 20 }} />
+
+            {/* Grid de botones */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {aperturaRegistrada === false ? (
+                <>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { setTheme(theme === "lite" ? "dark" : "lite"); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #f0f4ff, #e8eeff)", color: "#3730a3", border: "1px solid #c7d2fe", animationDelay: "40ms" }}
+                  >
+                    <span className="btn-icon">{theme === "lite" ? "🌙" : "☀️"}</span>
+                    <span><div className="btn-label">{theme === "lite" ? "Modo Oscuro" : "Modo Claro"}</div><div className="btn-desc">Cambiar tema visual</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { if (setView) setView("resultadosCaja"); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", color: "#92400e", border: "1px solid #fcd34d", animationDelay: "80ms" }}
+                  >
+                    <span className="btn-icon">📝</span>
+                    <span><div className="btn-label">Aclaraciones</div><div className="btn-desc">Cierres del mes</div></span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { setTheme(theme === "lite" ? "dark" : "lite"); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #f0f4ff, #e8eeff)", color: "#3730a3", border: "1px solid #c7d2fe", animationDelay: "40ms" }}
+                  >
+                    <span className="btn-icon">{theme === "lite" ? "🌙" : "☀️"}</span>
+                    <span><div className="btn-label">{theme === "lite" ? "Modo Oscuro" : "Modo Claro"}</div><div className="btn-desc">Cambiar tema visual</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { fetchResumenCaja(); setShowResumen(true); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #eff6ff, #dbeafe)", color: "#1e40af", border: "1px solid #93c5fd", animationDelay: "80ms" }}
+                  >
+                    <span className="btn-icon">📊</span>
+                    <span><div className="btn-label">Resumen</div><div className="btn-desc">Ventas del día</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { if (!isOnline) { setShowNoConnectionModal(true); } else { setShowCierre(true); } closeMenuAnimated(); }}
+                    style={{ background: isOnline ? "linear-gradient(135deg, #fffbeb, #fef3c7)" : "linear-gradient(135deg, #f9fafb, #f3f4f6)", color: isOnline ? "#78350f" : "#9ca3af", border: isOnline ? "1px solid #fcd34d" : "1px solid #e5e7eb", animationDelay: "120ms" }}
+                  >
+                    <span className="btn-icon">🚪</span>
+                    <span><div className="btn-label">Cierre de Caja</div><div className="btn-desc">{isOnline ? "Finalizar turno" : "Sin conexión"}</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { setShowRegistrarGasto(true); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #f0fdf4, #dcfce7)", color: "#166534", border: "1px solid #86efac", animationDelay: "160ms" }}
+                  >
+                    <span className="btn-icon">💸</span>
+                    <span><div className="btn-label">Registrar Gasto</div><div className="btn-desc">Egresos del día</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { setShowDevolucionModal(true); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #faf5ff, #f3e8ff)", color: "#6b21a8", border: "1px solid #d8b4fe", animationDelay: "200ms" }}
+                  >
+                    <span className="btn-icon">🔄</span>
+                    <span><div className="btn-label">Devolución</div><div className="btn-desc">Anular o revertir</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={async () => {
+                      closeMenuAnimated();
+                      setShowPedidosModal(true);
+                      let localesFormateados: any[] = [];
+                      try {
+                        const locales = await obtenerEnviosPendientes();
+                        localesFormateados = locales.map((e: any) => ({
+                          ...e,
+                          id: `local-${e.id}`,
+                          local_id: e.id,
+                          __localPending: true,
+                        }));
+                      } catch (_localErr) {}
+                      setPedidosList(localesFormateados);
+                      try {
+                        const { data, error } = await supabase
+                          .from("pedidos_envio")
+                          .select("*")
+                          .order("id", { ascending: false })
+                          .limit(100);
+                        if (!error && data) {
+                          setPedidosList([...localesFormateados, ...data]);
+                        }
+                      } catch (_err) {}
+                    }}
+                    style={{ background: "linear-gradient(135deg, #ecfdf5, #d1fae5)", color: "#065f46", border: "1px solid #6ee7b7", animationDelay: "240ms" }}
+                  >
+                    <span className="btn-icon">🏠</span>
+                    <span><div className="btn-label">Domicilios</div><div className="btn-desc">Pedidos por teléfono</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { if (setView) setView("resultadosCaja"); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", color: "#92400e", border: "1px solid #fcd34d", animationDelay: "280ms" }}
+                  >
+                    <span className="btn-icon">📝</span>
+                    <span><div className="btn-label">Aclaraciones</div><div className="btn-desc">Cierres del mes</div></span>
+                  </button>
+                  <button
+                    className="menu-btn"
+                    onClick={() => { fetchHistorialVentas(); closeMenuAnimated(); }}
+                    style={{ background: "linear-gradient(135deg, #fdf4ff, #fae8ff)", color: "#7e22ce", border: "1px solid #e879f9", animationDelay: "320ms" }}
+                  >
+                    <span className="btn-icon">🧾</span>
+                    <span><div className="btn-label">Historial</div><div className="btn-desc">Ventas registradas</div></span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

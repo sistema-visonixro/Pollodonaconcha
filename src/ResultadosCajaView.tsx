@@ -191,6 +191,109 @@ export default function ResultadosCajaView() {
     })();
   }, []);
 
+  const printCierreReport = (cierre: any) => {
+    const logoUrl = datosNegocio.logo_url || "/favicon.ico";
+    const img = new Image();
+    img.src = logoUrl;
+
+    const doPrint = () => {
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) return;
+
+      const efectivoDiff = (
+        (parseFloat(cierre.efectivo_registrado) || 0) -
+        (parseFloat(cierre.efectivo_dia) || 0)
+      ).toFixed(2);
+      const tarjetaDiff = (
+        (parseFloat(cierre.monto_tarjeta_registrado) || 0) -
+        (parseFloat(cierre.monto_tarjeta_dia) || 0)
+      ).toFixed(2);
+      const transDiff = (
+        (parseFloat(cierre.transferencias_registradas) || 0) -
+        (parseFloat(cierre.transferencias_dia) || 0)
+      ).toFixed(2);
+      const dolaresDiff = (
+        (parseFloat(cierre.dolares_registrado) || 0) -
+        (parseFloat(cierre.dolares_dia) || 0)
+      ).toFixed(2);
+
+      const html = `
+        <html>
+          <head>
+            <title>Reporte de Cierre</title>
+            <style>
+              body { font-family: 'Courier New', monospace; padding: 10px; width: 80mm; margin: 0 auto; color: #000; font-weight: 700; font-size: 16px; }
+              .header { text-align: center; margin-bottom: 20px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
+              .title { font-size: 20px; margin: 10px 0; }
+              .info { font-size: 16px; margin-bottom: 15px; }
+              .row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 16px; }
+              .divider { border-top: 1px dashed #000; margin: 10px 0; }
+              .footer { text-align: center; margin-top: 30px; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div style="font-size: 18px;">${datosNegocio.nombre_negocio.toUpperCase()}</div>
+              <div class="title">REPORTE DE CIERRE DE CAJA</div>
+              <div style="font-size: 13px; color: #555;">(REIMPRESIÓN)</div>
+            </div>
+            <div class="info">
+              <div><strong>Número de Cierre:</strong> ${cierre.id || "N/A"}</div>
+              <div><strong>Fecha cierre:</strong> ${new Date(cierre.fecha).toLocaleDateString("es-HN")} ${new Date(cierre.fecha).toLocaleTimeString("es-HN")}</div>
+              <div><strong>Cajero:</strong> ${cierre.cajero}</div>
+              <div><strong>Caja:</strong> ${cierre.caja}</div>
+            </div>
+            <div class="divider"></div>
+            <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">SISTEMA</div>
+            <div class="row"><span>Fondo Fijo:</span><span>L ${Number(cierre.fondo_fijo || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Ventas Efectivo (Neto):</span><span>L ${Number(cierre.efectivo_dia || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Ventas Tarjeta:</span><span>L ${Number(cierre.monto_tarjeta_dia || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Ventas Transf.:</span><span>L ${Number(cierre.transferencias_dia || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Dólares (USD):</span><span>$ ${Number(cierre.dolares_dia || 0).toFixed(2)}</span></div>
+            <div class="divider"></div>
+            <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">CONTEO (USUARIO)</div>
+            <div class="row"><span>Fondo Fijo:</span><span>L ${Number(cierre.fondo_fijo_registrado || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Efectivo:</span><span>L ${Number(cierre.efectivo_registrado || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Tarjeta:</span><span>L ${Number(cierre.monto_tarjeta_registrado || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Transferencia:</span><span>L ${Number(cierre.transferencias_registradas || 0).toFixed(2)}</span></div>
+            <div class="row"><span>Dólares (USD):</span><span>$ ${Number(cierre.dolares_registrado || 0).toFixed(2)}</span></div>
+            <div class="divider"></div>
+            <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">DIFERENCIAS</div>
+            <div class="row"><span>Efectivo:</span><span>L ${efectivoDiff}</span></div>
+            <div class="row"><span>Tarjeta:</span><span>L ${tarjetaDiff}</span></div>
+            <div class="row"><span>Transferencia:</span><span>L ${transDiff}</span></div>
+            <div class="row"><span>Dólares:</span><span>$ ${dolaresDiff}</span></div>
+            <div class="divider"></div>
+            <div class="row" style="font-weight: bold; font-size: 16px;">
+              <span>DIFERENCIA TOTAL:</span>
+              <span>L ${Number(cierre.diferencia || 0).toFixed(2)}</span>
+            </div>
+            ${cierre.observacion ? `<div class="row"><span>Observación:</span><span>${cierre.observacion}</span></div>` : ""}
+            ${cierre.referencia_aclaracion ? `<div class="row"><span>Referencia:</span><span>${cierre.referencia_aclaracion}</span></div>` : ""}
+            <div class="footer">
+              <p>__________________________</p>
+              <p>Firma Cajero</p>
+              <br/>
+              <p>__________________________</p>
+              <p>Firma Supervisor</p>
+            </div>
+            <script>
+              window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); };
+            </script>
+          </body>
+        </html>
+      `;
+      printWindow.document.write(html);
+      printWindow.document.close();
+    };
+
+    img.onload = doPrint;
+    img.onerror = doPrint;
+    setTimeout(() => {
+      if (!img.complete) doPrint();
+    }, 2000);
+  };
+
   return (
     <div
       style={{
@@ -1171,8 +1274,24 @@ export default function ResultadosCajaView() {
                         marginTop: 16,
                         display: "flex",
                         justifyContent: "flex-end",
+                        gap: 12,
+                        flexWrap: "wrap",
                       }}
                     >
+                      <button
+                        onClick={() => printCierreReport(cierre)}
+                        style={{
+                          padding: "10px 18px",
+                          background: "#1565c0",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 10,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        🖨️ Reimprimir cierre
+                      </button>
                       <button
                         onClick={() => abrirModalAclaracion(cierre)}
                         disabled={
