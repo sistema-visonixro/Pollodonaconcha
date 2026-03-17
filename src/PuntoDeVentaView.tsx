@@ -6717,31 +6717,60 @@ export default function PuntoDeVentaView({
             alignItems: "center",
             justifyContent: "center",
             zIndex: 130000,
-            animation: menuClosing ? "backdropOut 340ms ease forwards" : "backdropIn 280ms ease forwards",
+            animation: menuClosing
+              ? "backdropOut 340ms ease forwards"
+              : "backdropIn 280ms ease forwards",
           }}
           onClick={() => closeMenuAnimated()}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: "linear-gradient(160deg, #ffffff 0%, #f4f7ff 60%, #eef2ff 100%)",
+              background:
+                "linear-gradient(160deg, #ffffff 0%, #f4f7ff 60%, #eef2ff 100%)",
               color: "#111827",
               borderRadius: 24,
               padding: "28px 24px 24px",
               minWidth: 340,
               maxWidth: 700,
               width: "92%",
-              boxShadow: "0 32px 80px rgba(30,40,100,0.18), 0 0 0 1px rgba(100,120,200,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
-              animation: menuClosing ? "menuOut 340ms cubic-bezier(0.4,0,1,1) forwards" : "menuIn 360ms cubic-bezier(0.34,1.56,0.64,1) forwards",
+              boxShadow:
+                "0 32px 80px rgba(30,40,100,0.18), 0 0 0 1px rgba(100,120,200,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
+              animation: menuClosing
+                ? "menuOut 340ms cubic-bezier(0.4,0,1,1) forwards"
+                : "menuIn 360ms cubic-bezier(0.34,1.56,0.64,1) forwards",
             }}
           >
             {/* Header del menú */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 22,
+              }}
+            >
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#6b7fd4", textTransform: "uppercase", marginBottom: 4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 3,
+                    color: "#6b7fd4",
+                    textTransform: "uppercase",
+                    marginBottom: 4,
+                  }}
+                >
                   Panel de Control
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 0.5, color: "#111827" }}>
+                <div
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 900,
+                    letterSpacing: 0.5,
+                    color: "#111827",
+                  }}
+                >
                   Opciones
                 </div>
               </div>
@@ -6762,78 +6791,193 @@ export default function PuntoDeVentaView({
                   transition: "all 160ms",
                   flexShrink: 0,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(100,120,200,0.16)"; e.currentTarget.style.color = "#374151"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(100,120,200,0.08)"; e.currentTarget.style.color = "#6b7280"; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(100,120,200,0.16)";
+                  e.currentTarget.style.color = "#374151";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(100,120,200,0.08)";
+                  e.currentTarget.style.color = "#6b7280";
+                }}
               >
                 ✕
               </button>
             </div>
 
             {/* Separador */}
-            <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(100,120,200,0.2), transparent)", marginBottom: 20 }} />
+            <div
+              style={{
+                height: 1,
+                background:
+                  "linear-gradient(90deg, transparent, rgba(100,120,200,0.2), transparent)",
+                marginBottom: 20,
+              }}
+            />
 
             {/* Grid de botones */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 10,
+              }}
+            >
               {aperturaRegistrada === false ? (
                 <>
                   <button
                     className="menu-btn"
-                    onClick={() => { setTheme(theme === "lite" ? "dark" : "lite"); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #f0f4ff, #e8eeff)", color: "#3730a3", border: "1px solid #c7d2fe", animationDelay: "40ms" }}
+                    onClick={() => {
+                      setTheme(theme === "lite" ? "dark" : "lite");
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #f0f4ff, #e8eeff)",
+                      color: "#3730a3",
+                      border: "1px solid #c7d2fe",
+                      animationDelay: "40ms",
+                    }}
                   >
-                    <span className="btn-icon">{theme === "lite" ? "🌙" : "☀️"}</span>
-                    <span><div className="btn-label">{theme === "lite" ? "Modo Oscuro" : "Modo Claro"}</div><div className="btn-desc">Cambiar tema visual</div></span>
+                    <span className="btn-icon">
+                      {theme === "lite" ? "🌙" : "☀️"}
+                    </span>
+                    <span>
+                      <div className="btn-label">
+                        {theme === "lite" ? "Modo Oscuro" : "Modo Claro"}
+                      </div>
+                      <div className="btn-desc">Cambiar tema visual</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { if (setView) setView("resultadosCaja"); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", color: "#92400e", border: "1px solid #fcd34d", animationDelay: "80ms" }}
+                    onClick={() => {
+                      if (setView) setView("resultadosCaja");
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #fffbeb, #fef3c7)",
+                      color: "#92400e",
+                      border: "1px solid #fcd34d",
+                      animationDelay: "80ms",
+                    }}
                   >
                     <span className="btn-icon">📝</span>
-                    <span><div className="btn-label">Aclaraciones</div><div className="btn-desc">Cierres del mes</div></span>
+                    <span>
+                      <div className="btn-label">Aclaraciones</div>
+                      <div className="btn-desc">Cierres del mes</div>
+                    </span>
                   </button>
                 </>
               ) : (
                 <>
                   <button
                     className="menu-btn"
-                    onClick={() => { setTheme(theme === "lite" ? "dark" : "lite"); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #f0f4ff, #e8eeff)", color: "#3730a3", border: "1px solid #c7d2fe", animationDelay: "40ms" }}
+                    onClick={() => {
+                      setTheme(theme === "lite" ? "dark" : "lite");
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #f0f4ff, #e8eeff)",
+                      color: "#3730a3",
+                      border: "1px solid #c7d2fe",
+                      animationDelay: "40ms",
+                    }}
                   >
-                    <span className="btn-icon">{theme === "lite" ? "🌙" : "☀️"}</span>
-                    <span><div className="btn-label">{theme === "lite" ? "Modo Oscuro" : "Modo Claro"}</div><div className="btn-desc">Cambiar tema visual</div></span>
+                    <span className="btn-icon">
+                      {theme === "lite" ? "🌙" : "☀️"}
+                    </span>
+                    <span>
+                      <div className="btn-label">
+                        {theme === "lite" ? "Modo Oscuro" : "Modo Claro"}
+                      </div>
+                      <div className="btn-desc">Cambiar tema visual</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { fetchResumenCaja(); setShowResumen(true); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #eff6ff, #dbeafe)", color: "#1e40af", border: "1px solid #93c5fd", animationDelay: "80ms" }}
+                    onClick={() => {
+                      fetchResumenCaja();
+                      setShowResumen(true);
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #eff6ff, #dbeafe)",
+                      color: "#1e40af",
+                      border: "1px solid #93c5fd",
+                      animationDelay: "80ms",
+                    }}
                   >
                     <span className="btn-icon">📊</span>
-                    <span><div className="btn-label">Resumen</div><div className="btn-desc">Ventas del día</div></span>
+                    <span>
+                      <div className="btn-label">Resumen</div>
+                      <div className="btn-desc">Ventas del día</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { if (!isOnline) { setShowNoConnectionModal(true); } else { setShowCierre(true); } closeMenuAnimated(); }}
-                    style={{ background: isOnline ? "linear-gradient(135deg, #fffbeb, #fef3c7)" : "linear-gradient(135deg, #f9fafb, #f3f4f6)", color: isOnline ? "#78350f" : "#9ca3af", border: isOnline ? "1px solid #fcd34d" : "1px solid #e5e7eb", animationDelay: "120ms" }}
+                    onClick={() => {
+                      if (!isOnline) {
+                        setShowNoConnectionModal(true);
+                      } else {
+                        setShowCierre(true);
+                      }
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: isOnline
+                        ? "linear-gradient(135deg, #fffbeb, #fef3c7)"
+                        : "linear-gradient(135deg, #f9fafb, #f3f4f6)",
+                      color: isOnline ? "#78350f" : "#9ca3af",
+                      border: isOnline
+                        ? "1px solid #fcd34d"
+                        : "1px solid #e5e7eb",
+                      animationDelay: "120ms",
+                    }}
                   >
                     <span className="btn-icon">🚪</span>
-                    <span><div className="btn-label">Cierre de Caja</div><div className="btn-desc">{isOnline ? "Finalizar turno" : "Sin conexión"}</div></span>
+                    <span>
+                      <div className="btn-label">Cierre de Caja</div>
+                      <div className="btn-desc">
+                        {isOnline ? "Finalizar turno" : "Sin conexión"}
+                      </div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { setShowRegistrarGasto(true); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #f0fdf4, #dcfce7)", color: "#166534", border: "1px solid #86efac", animationDelay: "160ms" }}
+                    onClick={() => {
+                      setShowRegistrarGasto(true);
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #f0fdf4, #dcfce7)",
+                      color: "#166534",
+                      border: "1px solid #86efac",
+                      animationDelay: "160ms",
+                    }}
                   >
                     <span className="btn-icon">💸</span>
-                    <span><div className="btn-label">Registrar Gasto</div><div className="btn-desc">Egresos del día</div></span>
+                    <span>
+                      <div className="btn-label">Registrar Gasto</div>
+                      <div className="btn-desc">Egresos del día</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { setShowDevolucionModal(true); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #faf5ff, #f3e8ff)", color: "#6b21a8", border: "1px solid #d8b4fe", animationDelay: "200ms" }}
+                    onClick={() => {
+                      setShowDevolucionModal(true);
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #faf5ff, #f3e8ff)",
+                      color: "#6b21a8",
+                      border: "1px solid #d8b4fe",
+                      animationDelay: "200ms",
+                    }}
                   >
                     <span className="btn-icon">🔄</span>
-                    <span><div className="btn-label">Devolución</div><div className="btn-desc">Anular o revertir</div></span>
+                    <span>
+                      <div className="btn-label">Devolución</div>
+                      <div className="btn-desc">Anular o revertir</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
@@ -6862,26 +7006,56 @@ export default function PuntoDeVentaView({
                         }
                       } catch (_err) {}
                     }}
-                    style={{ background: "linear-gradient(135deg, #ecfdf5, #d1fae5)", color: "#065f46", border: "1px solid #6ee7b7", animationDelay: "240ms" }}
+                    style={{
+                      background: "linear-gradient(135deg, #ecfdf5, #d1fae5)",
+                      color: "#065f46",
+                      border: "1px solid #6ee7b7",
+                      animationDelay: "240ms",
+                    }}
                   >
                     <span className="btn-icon">🏠</span>
-                    <span><div className="btn-label">Domicilios</div><div className="btn-desc">Pedidos por teléfono</div></span>
+                    <span>
+                      <div className="btn-label">Domicilios</div>
+                      <div className="btn-desc">Pedidos por teléfono</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { if (setView) setView("resultadosCaja"); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #fffbeb, #fef3c7)", color: "#92400e", border: "1px solid #fcd34d", animationDelay: "280ms" }}
+                    onClick={() => {
+                      if (setView) setView("resultadosCaja");
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #fffbeb, #fef3c7)",
+                      color: "#92400e",
+                      border: "1px solid #fcd34d",
+                      animationDelay: "280ms",
+                    }}
                   >
                     <span className="btn-icon">📝</span>
-                    <span><div className="btn-label">Aclaraciones</div><div className="btn-desc">Cierres del mes</div></span>
+                    <span>
+                      <div className="btn-label">Aclaraciones</div>
+                      <div className="btn-desc">Cierres del mes</div>
+                    </span>
                   </button>
                   <button
                     className="menu-btn"
-                    onClick={() => { fetchHistorialVentas(); closeMenuAnimated(); }}
-                    style={{ background: "linear-gradient(135deg, #fdf4ff, #fae8ff)", color: "#7e22ce", border: "1px solid #e879f9", animationDelay: "320ms" }}
+                    onClick={() => {
+                      fetchHistorialVentas();
+                      closeMenuAnimated();
+                    }}
+                    style={{
+                      background: "linear-gradient(135deg, #fdf4ff, #fae8ff)",
+                      color: "#7e22ce",
+                      border: "1px solid #e879f9",
+                      animationDelay: "320ms",
+                    }}
                   >
                     <span className="btn-icon">🧾</span>
-                    <span><div className="btn-label">Historial</div><div className="btn-desc">Ventas registradas</div></span>
+                    <span>
+                      <div className="btn-label">Historial</div>
+                      <div className="btn-desc">Ventas registradas</div>
+                    </span>
                   </button>
                 </>
               )}

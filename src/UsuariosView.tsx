@@ -704,7 +704,6 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
                 codigo: "",
                 clave: "",
                 rol: "cajero",
-                email: "",
                 caja: "",
                 ip: "",
               });
@@ -736,185 +735,167 @@ export default function UsuariosView({ onBack }: UsuariosViewProps) {
           <div
             style={{
               position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(15,23,42,0.5)",
-              backdropFilter: "blur(8px)",
+              inset: 0,
+              background: "rgba(30,41,59,0.45)",
+              backdropFilter: "blur(10px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               zIndex: 9999,
             }}
-            onClick={() => setShowModal(false)}
           >
             <div
               style={{
-                background: "white",
-                borderRadius: 24,
-                padding: 32,
-                minWidth: 320,
-                maxWidth: 400,
-                width: "100%",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "32px 32px 28px",
+                minWidth: 340,
+                maxWidth: 440,
+                width: "92%",
+                boxShadow: "0 24px 64px rgba(30,41,59,0.18), 0 0 0 1px rgba(100,116,139,0.1)",
                 position: "relative",
-                color: "var(--text-primary)",
-                border: "1px solid #e2e8f0",
               }}
-              onClick={(e) => e.stopPropagation()}
             >
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  position: "absolute",
-                  top: 12,
-                  right: 12,
-                  background: "#f1f5f9",
-                  border: "none",
-                  color: "var(--text-primary)",
-                  fontSize: 24,
-                  cursor: "pointer",
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                aria-label="Cerrar"
-              >
-                ×
-              </button>
-              <h3
-                style={{
-                  color: "var(--text-primary)",
-                  marginBottom: "1rem",
-                  fontSize: "1.5rem",
-                  fontWeight: 800,
-                }}
-              >
-                {editId ? "✏️ Editar Usuario" : "👤 Nuevo Usuario"}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  position: "absolute",
-                  top: 12,
-                  right: 12,
-                  background: "transparent",
-                  border: "none",
-                  color: "#fff",
-                  fontSize: 24,
-                  cursor: "pointer",
-                }}
-                aria-label="Cerrar"
-              >
-                ×
-              </button>
-              <h3 style={{ color: "#ffffff", marginBottom: "1rem" }}>
-                {editId ? "✏️ Editar Usuario" : "👤 Nuevo Usuario"}
-              </h3>
-              <form onSubmit={handleSubmit} className="form-grid">
-                <input
-                  className="form-input"
-                  type="text"
-                  placeholder="Nombre completo"
-                  value={form.nombre || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, nombre: e.target.value }))
-                  }
-                  required
-                  style={{ color: "#43a047", fontWeight: 700 }}
-                />
-                <input
-                  className="form-input"
-                  type="email"
-                  placeholder="Email (opcional)"
-                  value={form.email || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, email: e.target.value }))
-                  }
-                  style={{ color: "#43a047" }}
-                />
-                <input
-                  className="form-input"
-                  type="text"
-                  placeholder="Código único"
-                  value={form.codigo || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, codigo: e.target.value }))
-                  }
-                  required
-                  style={{ color: "#43a047", fontWeight: 700 }}
-                />
-                <input
-                  className="form-input"
-                  type="password"
-                  placeholder="Contraseña"
-                  value={form.clave || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, clave: e.target.value }))
-                  }
-                  required
-                  style={{ color: "#43a047", fontWeight: 700 }}
-                />
-                <select
-                  className="form-input"
-                  value="cajero"
-                  disabled
-                  style={{ color: "#43a047", fontWeight: 700 }}
-                >
-                  <option value="cajero">Cajero</option>
-                </select>
-                <select
-                  className="form-input"
-                  value={form.caja || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, caja: e.target.value }))
-                  }
-                  required
-                  style={{ color: "#43a047", fontWeight: 700 }}
-                >
-                  <option value="">Selecciona caja</option>
-                  {cajasDisponibles
-                    .filter((caja) => {
-                      // Permitir la caja si no está ocupada o si es la que tiene el usuario editado
-                      const ocupada = usuarios.some(
-                        (u) => u.caja === caja && (!editId || u.id !== editId),
-                      );
-                      return !ocupada || (editId && form.caja === caja);
-                    })
-                    .map((caja) => (
-                      <option key={caja} value={caja}>
-                        {caja}
-                      </option>
-                    ))}
-                </select>
-                {/* <input
-                  className="form-input"
-                  type="text"
-                  placeholder="IP (opcional)"
-                  value={form.ip || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, ip: e.target.value }))
-                  }
-                /> */}
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#6366f1", textTransform: "uppercase", marginBottom: 3 }}>
+                    {editId ? "Editando" : "Nuevo registro"}
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "#0f172a" }}>
+                    {editId ? "✏️ Editar Usuario" : "👤 Nuevo Usuario"}
+                  </h3>
+                </div>
                 <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={loading || limiteTotal || limitePorRol}
-                  style={{ gridColumn: "1/-1", justifySelf: "start" }}
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "1px solid #e2e8f0",
+                    color: "#64748b",
+                    borderRadius: 10,
+                    width: 36,
+                    height: 36,
+                    cursor: "pointer",
+                    fontSize: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    transition: "all 150ms",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#e2e8f0"; e.currentTarget.style.color = "#1e293b"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}
                 >
-                  {loading
-                    ? "⏳ Guardando..."
-                    : editId
-                      ? "💾 Guardar Cambios"
-                      : "✅ Crear Usuario"}
+                  ✕
                 </button>
+              </div>
+
+              {/* Separador */}
+              <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #e2e8f0, transparent)", marginBottom: 22 }} />
+
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Nombre */}
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Nombre completo *</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Juan Pérez"
+                    value={form.nombre || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                    required
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
+                  />
+                </div>
+
+                {/* Código */}
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Código único *</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: USR001"
+                    value={form.codigo || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, codigo: e.target.value }))}
+                    required
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
+                  />
+                </div>
+
+                {/* Contraseña */}
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Contraseña *</label>
+                  <input
+                    type="password"
+                    placeholder="Mínimo 4 caracteres"
+                    value={form.clave || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, clave: e.target.value }))}
+                    required
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
+                  />
+                </div>
+
+                {/* Rol (fijo cajero) */}
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Rol</label>
+                  <div style={{ padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#64748b", background: "#f1f5f9" }}>Cajero</div>
+                </div>
+
+                {/* Caja */}
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Caja asignada *</label>
+                  <select
+                    value={form.caja || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, caja: e.target.value }))}
+                    required
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc", cursor: "pointer" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
+                  >
+                    <option value="">Seleccionar caja...</option>
+                    {cajasDisponibles
+                      .filter((caja) => {
+                        const ocupada = usuarios.some(
+                          (u) => u.caja === caja && (!editId || u.id !== editId),
+                        );
+                        return !ocupada || (editId && form.caja === caja);
+                      })
+                      .map((caja) => (
+                        <option key={caja} value={caja}>{caja}</option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Separador */}
+                <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
+
+                {/* Botones */}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    style={{ flex: 1, padding: "11px 0", border: "1.5px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#64748b", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 150ms" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading || limiteTotal || limitePorRol}
+                    style={{ flex: 2, padding: "11px 0", border: "none", borderRadius: 10, background: loading || limiteTotal || limitePorRol ? "#c7d2fe" : "linear-gradient(135deg, #6366f1, #4f46e5)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: loading || limiteTotal || limitePorRol ? "not-allowed" : "pointer", transition: "all 150ms", boxShadow: loading || limiteTotal || limitePorRol ? "none" : "0 4px 14px rgba(99,102,241,0.35)" }}
+                    onMouseEnter={(e) => { if (!loading && !limiteTotal && !limitePorRol) e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    {loading ? "⏳ Guardando..." : editId ? "💾 Guardar Cambios" : "✅ Crear Usuario"}
+                  </button>
+                </div>
               </form>
             </div>
-            {/* Fin del modal */}
           </div>
         )}
       </main>

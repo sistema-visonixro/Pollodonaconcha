@@ -698,431 +698,173 @@ export default function CaiFacturasView({ onBack }: CaiFacturasViewProps) {
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0,0,0,0.7)",
+              background: "rgba(30,41,59,0.45)",
+              backdropFilter: "blur(10px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               zIndex: 9999,
-              backdropFilter: "blur(4px)",
             }}
-            onClick={() => setShowModal(false)}
           >
             <div
               style={{
-                background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+                background: "#ffffff",
                 borderRadius: 20,
-                padding: 40,
-                maxWidth: 600,
-                width: "90%",
+                padding: "32px 32px 28px",
+                maxWidth: 560,
+                width: "92%",
                 maxHeight: "90vh",
                 overflow: "auto",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                border: "1px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 24px 64px rgba(30,41,59,0.18), 0 0 0 1px rgba(100,116,139,0.1)",
               }}
-              onClick={(e) => e.stopPropagation()}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 32,
-                }}
-              >
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "1.8rem",
-                    fontWeight: 900,
-                    background:
-                      "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  {editId ? "✏️ Editar CAI" : "➕ Nuevo CAI"}
-                </h2>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#6366f1", textTransform: "uppercase", marginBottom: 3 }}>
+                    {editId ? "Editando registro" : "Nuevo registro"}
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "#0f172a" }}>
+                    {editId ? "✏️ Editar CAI" : "➕ Nuevo CAI"}
+                  </h2>
+                </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  style={{
-                    background: "rgba(255,255,255,0.1)",
-                    border: "none",
-                    color: "#fff",
-                    fontSize: 28,
-                    width: 40,
-                    height: 40,
-                    borderRadius: "50%",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "rgba(255,255,255,0.1)")
-                  }
+                  style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#64748b", borderRadius: 10, width: 36, height: 36, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 150ms" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#e2e8f0"; e.currentTarget.style.color = "#1e293b"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#64748b"; }}
                 >
-                  ×
+                  ✕
                 </button>
               </div>
 
-              <form
-                onSubmit={handleSubmit}
-                style={{ display: "flex", flexDirection: "column", gap: 24 }}
-              >
+              {/* Separador */}
+              <div style={{ height: 1, background: "linear-gradient(90deg, transparent, #e2e8f0, transparent)", marginBottom: 22 }} />
+
+              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {/* CAI */}
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      color: "#90caf9",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      marginBottom: 8,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    📋 Código CAI *
-                  </label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>📋 Código CAI *</label>
                   <input
                     type="text"
                     placeholder="Ingresa el código CAI completo"
                     value={form.cai || ""}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, cai: e.target.value }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, cai: e.target.value }))}
                     required
-                    style={{
-                      width: "100%",
-                      padding: "12px 16px",
-                      background: "rgba(255,255,255,0.05)",
-                      border: "2px solid rgba(255,255,255,0.1)",
-                      borderRadius: 10,
-                      color: "#fff",
-                      fontSize: 15,
-                      outline: "none",
-                      transition: "all 0.2s",
-                    }}
-                    onFocus={(e) =>
-                      (e.currentTarget.style.borderColor = "#667eea")
-                    }
-                    onBlur={(e) =>
-                      (e.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.1)")
-                    }
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
                   />
                 </div>
 
-                {/* Rango de facturas */}
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 16,
-                  }}
-                >
+                {/* Rango */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
-                    <label
-                      style={{
-                        display: "block",
-                        color: "#90caf9",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        marginBottom: 8,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      🔢 Rango Desde *
-                    </label>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>🔢 Rango Desde *</label>
                     <input
                       type="number"
                       placeholder="Ej: 1"
                       value={form.rango_desde || ""}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          rango_desde: Number(e.target.value),
-                        }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, rango_desde: Number(e.target.value) }))}
                       required
-                      style={{
-                        width: "100%",
-                        padding: "12px 16px",
-                        background: "rgba(255,255,255,0.05)",
-                        border: "2px solid rgba(255,255,255,0.1)",
-                        borderRadius: 10,
-                        color: "#fff",
-                        fontSize: 15,
-                        outline: "none",
-                        transition: "all 0.2s",
-                      }}
-                      onFocus={(e) =>
-                        (e.currentTarget.style.borderColor = "#667eea")
-                      }
-                      onBlur={(e) =>
-                        (e.currentTarget.style.borderColor =
-                          "rgba(255,255,255,0.1)")
-                      }
+                      style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
                     />
                   </div>
-
                   <div>
-                    <label
-                      style={{
-                        display: "block",
-                        color: "#90caf9",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        marginBottom: 8,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      🔢 Rango Hasta *
-                    </label>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>🔢 Rango Hasta *</label>
                     <input
                       type="number"
                       placeholder="Ej: 1000"
                       value={form.rango_hasta || ""}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          rango_hasta: Number(e.target.value),
-                        }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, rango_hasta: Number(e.target.value) }))}
                       required
-                      style={{
-                        width: "100%",
-                        padding: "12px 16px",
-                        background: "rgba(255,255,255,0.05)",
-                        border: "2px solid rgba(255,255,255,0.1)",
-                        borderRadius: 10,
-                        color: "#fff",
-                        fontSize: 15,
-                        outline: "none",
-                        transition: "all 0.2s",
-                      }}
-                      onFocus={(e) =>
-                        (e.currentTarget.style.borderColor = "#667eea")
-                      }
-                      onBlur={(e) =>
-                        (e.currentTarget.style.borderColor =
-                          "rgba(255,255,255,0.1)")
-                      }
+                      style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
                     />
                   </div>
                 </div>
 
                 {/* Cajero */}
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      color: "#90caf9",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      marginBottom: 8,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    👤 Cajero Asignado *
-                  </label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>👤 Cajero Asignado *</label>
                   <select
                     value={form.cajero_id || ""}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, cajero_id: e.target.value }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, cajero_id: e.target.value }))}
                     required
-                    style={{
-                      width: "100%",
-                      padding: "12px 16px",
-                      background: "rgba(255,255,255,0.05)",
-                      border: "2px solid rgba(255,255,255,0.1)",
-                      borderRadius: 10,
-                      color: "#fff",
-                      fontSize: 15,
-                      outline: "none",
-                      transition: "all 0.2s",
-                      cursor: "pointer",
-                    }}
-                    onFocus={(e) =>
-                      (e.currentTarget.style.borderColor = "#667eea")
-                    }
-                    onBlur={(e) =>
-                      (e.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.1)")
-                    }
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc", cursor: "pointer" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
                   >
-                    <option
-                      value=""
-                      style={{ background: "#1a1a2e", color: "#fff" }}
-                    >
-                      Selecciona un cajero
-                    </option>
+                    <option value="">Selecciona un cajero...</option>
                     {usuarios.map((u) => (
-                      <option
-                        key={u.id}
-                        value={u.id}
-                        style={{ background: "#1a1a2e", color: "#fff" }}
-                      >
-                        {u.nombre}
-                      </option>
+                      <option key={u.id} value={u.id}>{u.nombre}</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Caja Asignada */}
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      color: "#90caf9",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      marginBottom: 8,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    🏪 Caja Asignada *
-                  </label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>🏪 Caja Asignada *</label>
                   <input
                     type="text"
-                    placeholder={
-                      form.cajero_id
-                        ? "Se autocompleta desde cajero"
-                        : "Ingresa nombre de caja"
-                    }
+                    placeholder={form.cajero_id ? "Se autocompleta desde cajero" : "Ingresa nombre de caja"}
                     value={(() => {
                       if (form.cajero_id) {
-                        const cajero = usuarios.find(
-                          (u) => u.id === form.cajero_id,
-                        );
-                        return cajero && cajero.caja
-                          ? cajero.caja
-                          : form.caja_asignada || "";
+                        const cajero = usuarios.find((u) => u.id === form.cajero_id);
+                        return cajero && cajero.caja ? cajero.caja : form.caja_asignada || "";
                       }
                       return form.caja_asignada || "";
                     })()}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, caja_asignada: e.target.value }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, caja_asignada: e.target.value }))}
                     required
                     readOnly={!!form.cajero_id}
-                    style={{
-                      width: "100%",
-                      padding: "12px 16px",
-                      background: form.cajero_id
-                        ? "rgba(255,255,255,0.02)"
-                        : "rgba(255,255,255,0.05)",
-                      border: "2px solid rgba(255,255,255,0.1)",
-                      borderRadius: 10,
-                      color: form.cajero_id ? "rgba(255,255,255,0.6)" : "#fff",
-                      fontSize: 15,
-                      outline: "none",
-                      transition: "all 0.2s",
-                      cursor: form.cajero_id ? "not-allowed" : "text",
-                    }}
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: form.cajero_id ? "#94a3b8" : "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: form.cajero_id ? "#f1f5f9" : "#f8fafc", cursor: form.cajero_id ? "not-allowed" : "text" }}
                   />
                 </div>
 
                 {/* Factura Actual */}
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      color: "#90caf9",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      marginBottom: 8,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    📄 Factura Actual (Opcional)
-                  </label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>📄 Factura Actual <span style={{ fontWeight: 400, color: "#94a3b8", textTransform: "none" }}>(opcional)</span></label>
                   <input
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    placeholder="Número de factura actual"
+                    placeholder="Nº de factura actual — vacío = automático"
                     value={form.factura_actual || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (/^\d*$/.test(value)) {
-                        setForm((f) => ({ ...f, factura_actual: value }));
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "12px 16px",
-                      background: "rgba(255,255,255,0.05)",
-                      border: "2px solid rgba(255,255,255,0.1)",
-                      borderRadius: 10,
-                      color: "#fff",
-                      fontSize: 15,
-                      outline: "none",
-                      transition: "all 0.2s",
-                    }}
-                    onFocus={(e) =>
-                      (e.currentTarget.style.borderColor = "#667eea")
-                    }
-                    onBlur={(e) =>
-                      (e.currentTarget.style.borderColor =
-                        "rgba(255,255,255,0.1)")
-                    }
+                    onChange={(e) => { const value = e.target.value; if (/^\d*$/.test(value)) setForm((f) => ({ ...f, factura_actual: value })); }}
+                    style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: 14, color: "#0f172a", outline: "none", transition: "border 150ms", boxSizing: "border-box", background: "#f8fafc" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#fff"; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.background = "#f8fafc"; }}
                   />
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.5)",
-                      marginTop: 6,
-                    }}
-                  >
-                    Deja en blanco para calcular automáticamente
-                  </div>
                 </div>
 
-                {/* Botón Guardar */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    padding: "14px 32px",
-                    background: loading
-                      ? "rgba(102, 126, 234, 0.5)"
-                      : "linear-gradient(90deg, #667eea 0%, #764ba2 100%)",
-                    border: "none",
-                    borderRadius: 12,
-                    color: "#fff",
-                    fontSize: 16,
-                    fontWeight: 700,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    transition: "all 0.3s",
-                    boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
-                    marginTop: 8,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!loading)
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!loading)
-                      e.currentTarget.style.transform = "translateY(0)";
-                  }}
-                >
-                  {loading
-                    ? "⏳ Guardando..."
-                    : editId
-                      ? "💾 Guardar Cambios"
-                      : "✅ Crear CAI"}
-                </button>
+                {/* Separador */}
+                <div style={{ height: 1, background: "#f1f5f9", margin: "4px 0" }} />
+
+                {/* Botones */}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    style={{ flex: 1, padding: "11px 0", border: "1.5px solid #e2e8f0", borderRadius: 10, background: "#fff", color: "#64748b", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 150ms" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#f8fafc"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{ flex: 2, padding: "11px 0", border: "none", borderRadius: 10, background: loading ? "#c7d2fe" : "linear-gradient(135deg, #6366f1, #4f46e5)", color: "#fff", fontWeight: 800, fontSize: 14, cursor: loading ? "not-allowed" : "pointer", transition: "all 150ms", boxShadow: loading ? "none" : "0 4px 14px rgba(99,102,241,0.35)" }}
+                    onMouseEnter={(e) => { if (!loading) e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    {loading ? "⏳ Guardando..." : editId ? "💾 Guardar Cambios" : "✅ Crear CAI"}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
